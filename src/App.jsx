@@ -1,14 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Volume2, Info, X, MapPin } from 'lucide-react';
+import { Camera, Volume2, Info, X, MapPin, Loader2 } from 'lucide-react';
+import * as tmImage from '@teachablemachine/image';
 
 const PakistanARGuide = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [recognizedPlace, setRecognizedPlace] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [modelLoading, setModelLoading] = useState(false);
+  const [confidence, setConfidence] = useState(0);
+  
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const scanIntervalRef = useRef(null);
+  const modelRef = useRef(null);
+  const maxPredictionsRef = useRef(0);
+
+  // Your Teachable Machine model URL
+  const MODEL_URL = 'https://teachablemachine.withgoogle.com/models/K9EMps9w-/';
 
   // Historical places database
   const placesDatabase = {
@@ -68,9 +77,40 @@ const PakistanARGuide = () => {
     }
   };
 
+  // Load Teachable Machine model
+  const loadModel = async () => {
+    try {
+      setModelLoading(true);
+      const modelURL = MODEL_URL + 'model.json';
+      const metadataURL = MODEL_URL + 'metadata.json';
+
+      modelRef.current = await tmImage.load(modelURL, metadataURL);
+      maxPredictionsRef.current = modelRef.current.getTotalClasses();
+      
+      console.log('✅ Model loaded successfully!');
+      setModelLoading(false);
+      return true;
+    } catch (error) {
+      console.error('❌ Error loading model:', error);
+      alert('Failed to load AI model. Please check your internet connection.');
+      setModelLoading(false);
+      return false;
+    }
+  };
+
   // Start camera
   const startCamera = async () => {
     try {
+      console.log('🎥 Starting camera...');
+      
+      // Load model first
+      const modelLoaded = await loadModel();
+      if (!modelLoaded) {
+        console.error('❌ Model failed to load');
+        return;
+      }
+
+      console.log('📹 Requesting camera access...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: 'environment',
@@ -79,16 +119,37 @@ const PakistanARGuide = () => {
         }
       });
       
+      console.log('✅ Camera stream acquired');
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+        
+        console.log('🎬 Waiting for video metadata...');
+        
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+          videoRef.current.onloadedmetadata = () => {
+            console.log('✅ Video metadata loaded');
+            resolve();
+          };
+        });
+        
+        // Ensure video plays
+        try {
+          await videoRef.current.play();
+          console.log('▶️ Video playing');
+        } catch (playErr) {
+          console.error('Play error:', playErr);
+        }
+        
+        setIsScanning(true);
+        console.log('🔍 Starting scan...');
+        startScanning();
       }
-      
-      setIsScanning(true);
-      startScanning();
     } catch (err) {
-      alert('Camera access denied. Please enable camera permissions.');
-      console.error('Camera error:', err);
+      console.error('❌ Camera error:', err);
+      alert('Camera error: ' + err.message + '. Please check permissions and try again.');
     }
   };
 
@@ -106,32 +167,63 @@ const PakistanARGuide = () => {
     }
     setIsScanning(false);
     setRecognizedPlace(null);
+    setConfidence(0);
     stopSpeaking();
   };
 
-  // Simulate image recognition (placeholder for ML model)
-  const simulateRecognition = () => {
-    // In production, this would be replaced with TensorFlow.js model prediction
-    // For now, randomly recognize a place for demo purposes
-    const random = Math.random();
-    
-    if (random > 0.7) { // 30% chance to "recognize" something
-      const places = Object.keys(placesDatabase);
-      const randomPlace = places[Math.floor(Math.random() * places.length)];
-      return { place: randomPlace, confidence: 0.85 + Math.random() * 0.15 };
+  // Real ML image recognition
+  const recognizePlace = async () => {
+    if (!modelRef.current || !videoRef.current) return null;
+
+    try {
+      const prediction = await modelRef.current.predict(videoRef.current);
+      
+      // Find highest confidence prediction
+      let maxConfidence = 0;
+      let recognizedClass = null;
+
+      prediction.forEach(pred => {
+        if (pred.probability > maxConfidence) {
+          maxConfidence = pred.probability;
+          recognizedClass = pred.className.toLowerCase();
+        }
+      });
+
+      // Only trigger if confidence > 70%
+      if (maxConfidence > 0.7) {
+        return {
+          place: recognizedClass,
+          confidence: maxConfidence
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Recognition error:', error);
+      return null;
     }
-    return null;
   };
 
   // Start scanning for places
   const startScanning = () => {
-    scanIntervalRef.current = setInterval(() => {
+    scanIntervalRef.current = setInterval(async () => {
       if (!recognizedPlace) {
-        const result = simulateRecognition();
-        if (result && result.confidence > 0.8) {
-          const place = placesDatabase[result.place];
-          setRecognizedPlace({ ...place, key: result.place });
-          speakNarration(place.narration);
+        const result = await recognizePlace();
+        
+        if (result && result.confidence > 0.7) {
+          const placeKey = result.place.toLowerCase().replace(/[^a-z]/g, '');
+          const place = placesDatabase[placeKey];
+          
+          if (place) {
+            // Stop scanning once we recognize something
+            if (scanIntervalRef.current) {
+              clearInterval(scanIntervalRef.current);
+            }
+            
+            setRecognizedPlace({ ...place, key: placeKey });
+            setConfidence(result.confidence);
+            speakNarration(place.narration);
+          }
         }
       }
     }, 2000); // Scan every 2 seconds
@@ -179,7 +271,7 @@ const PakistanARGuide = () => {
           <MapPin className="w-6 h-6" />
           Pakistan AR Guide
         </h1>
-        <p className="text-gray-300 text-sm mt-1">Point your camera at historical sites</p>
+        <p className="text-gray-300 text-sm mt-1">AI-powered monument recognition</p>
       </div>
 
       {/* Camera View */}
@@ -189,17 +281,28 @@ const PakistanARGuide = () => {
             <Camera className="w-24 h-24 text-blue-400 mb-6" />
             <h2 className="text-white text-2xl font-bold mb-3">Start Your Journey</h2>
             <p className="text-gray-300 text-center mb-8 max-w-md">
-              Point your camera at historical places in Pakistan to learn their stories through AR and voice narration.
+              Point your camera at historical places in Pakistan. Our AI will recognize them and tell you their stories.
             </p>
             <button
               onClick={startCamera}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg transition-all transform hover:scale-105"
+              disabled={modelLoading}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Start Camera
+              {modelLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Loading AI Model...
+                </>
+              ) : (
+                <>
+                  <Camera className="w-5 h-5" />
+                  Start Camera
+                </>
+              )}
             </button>
             <div className="mt-8 text-gray-400 text-sm text-center max-w-md">
-              <p className="mb-2">📍 Supported sites:</p>
-              <p>Taxila • Badshahi Mosque • Mohenjo-daro</p>
+              <p className="mb-2">🤖 AI-Powered Recognition</p>
+              <p className="text-xs">Taxila • Badshahi Mosque • Mohenjo-daro</p>
             </div>
           </div>
         ) : (
@@ -236,7 +339,12 @@ const PakistanARGuide = () => {
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent p-6 pb-8">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h2 className="text-white text-2xl font-bold mb-1">{recognizedPlace.name}</h2>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h2 className="text-white text-2xl font-bold">{recognizedPlace.name}</h2>
+                      <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                        {Math.round(confidence * 100)}% match
+                      </span>
+                    </div>
                     <p className="text-blue-400 text-sm flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
                       {recognizedPlace.location}
@@ -272,8 +380,9 @@ const PakistanARGuide = () => {
             {!recognizedPlace && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="w-48 h-48 border-4 border-blue-500 rounded-lg animate-pulse"></div>
-                <p className="text-white text-center mt-4 bg-black/50 px-4 py-2 rounded">
-                  Scanning for monuments...
+                <p className="text-white text-center mt-4 bg-black/50 px-4 py-2 rounded flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  AI scanning for monuments...
                 </p>
               </div>
             )}
@@ -305,10 +414,15 @@ const PakistanARGuide = () => {
             
             <div className="p-4">
               <div className="mb-4">
-                <p className="text-blue-400 text-sm mb-2">
-                  <MapPin className="w-4 h-4 inline mr-1" />
-                  {recognizedPlace.location}
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-blue-400 text-sm flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {recognizedPlace.location}
+                  </p>
+                  <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                    AI Confidence: {Math.round(confidence * 100)}%
+                  </span>
+                </div>
                 <p className="text-gray-400 text-sm mb-3">{recognizedPlace.period}</p>
                 <p className="text-gray-300 text-sm leading-relaxed">{recognizedPlace.description}</p>
               </div>
