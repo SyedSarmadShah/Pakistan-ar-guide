@@ -102,15 +102,27 @@ const PakistanARGuide = () => {
   const startCamera = async () => {
     try {
       console.log('🎥 Starting camera...');
+      alert('Starting camera...'); // Mobile debug
+      
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Camera API not supported on this browser!');
+        return;
+      }
       
       // Load model first
+      console.log('📦 Loading AI model...');
+      alert('Loading AI model...');
       const modelLoaded = await loadModel();
       if (!modelLoaded) {
         console.error('❌ Model failed to load');
+        alert('Failed to load AI model. Check internet connection.');
         return;
       }
 
       console.log('📹 Requesting camera access...');
+      alert('Requesting camera...');
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: 'environment',
@@ -120,10 +132,13 @@ const PakistanARGuide = () => {
       });
       
       console.log('✅ Camera stream acquired');
+      alert('Camera acquired!');
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('autoplay', 'true');
         
         console.log('🎬 Waiting for video metadata...');
         
@@ -139,8 +154,10 @@ const PakistanARGuide = () => {
         try {
           await videoRef.current.play();
           console.log('▶️ Video playing');
+          alert('Video should be playing now!');
         } catch (playErr) {
           console.error('Play error:', playErr);
+          alert('Video play error: ' + playErr.message);
         }
         
         setIsScanning(true);
@@ -149,7 +166,7 @@ const PakistanARGuide = () => {
       }
     } catch (err) {
       console.error('❌ Camera error:', err);
-      alert('Camera error: ' + err.message + '. Please check permissions and try again.');
+      alert('Camera error: ' + err.name + ' - ' + err.message);
     }
   };
 
@@ -312,6 +329,7 @@ const PakistanARGuide = () => {
               autoPlay
               playsInline
               muted
+              webkit-playsinline="true"
               className="w-full h-full object-cover"
             />
 
