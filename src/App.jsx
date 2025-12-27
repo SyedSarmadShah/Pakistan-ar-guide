@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Volume2, Info, X, MapPin, Loader2 } from 'lucide-react';
+import { Camera, Volume2, Info, X, MapPin, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import * as tmImage from '@teachablemachine/image';
 
 const PakistanARGuide = () => {
@@ -7,7 +7,8 @@ const PakistanARGuide = () => {
   const [recognizedPlace, setRecognizedPlace] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [modelLoading, setModelLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [statusType, setStatusType] = useState('info'); // 'info', 'success', 'error', 'loading'
   const [confidence, setConfidence] = useState(0);
   
   const videoRef = useRef(null);
@@ -77,23 +78,28 @@ const PakistanARGuide = () => {
     }
   };
 
+  // Update status message
+  const updateStatus = (message, type = 'info') => {
+    setStatusMessage(message);
+    setStatusType(type);
+    console.log(`[${type.toUpperCase()}] ${message}`);
+  };
+
   // Load Teachable Machine model
   const loadModel = async () => {
     try {
-      setModelLoading(true);
+      updateStatus('Loading AI model...', 'loading');
       const modelURL = MODEL_URL + 'model.json';
       const metadataURL = MODEL_URL + 'metadata.json';
 
       modelRef.current = await tmImage.load(modelURL, metadataURL);
       maxPredictionsRef.current = modelRef.current.getTotalClasses();
       
-      console.log('✅ Model loaded successfully!');
-      setModelLoading(false);
+      updateStatus('AI model loaded successfully!', 'success');
       return true;
     } catch (error) {
-      console.error('❌ Error loading model:', error);
-      alert('Failed to load AI model. Please check your internet connection.');
-      setModelLoading(false);
+      console.error('Model loading error:', error);
+      updateStatus('Failed to load AI model. Check your internet connection.', 'error');
       return false;
     }
   };
@@ -101,27 +107,23 @@ const PakistanARGuide = () => {
   // Start camera
   const startCamera = async () => {
     try {
-      console.log('🎥 Starting camera...');
-      alert('Starting camera...'); // Mobile debug
+      updateStatus('Initializing camera system...', 'loading');
       
-      // Check if getUserMedia is available
+      // Check if camera API is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Camera API not supported on this browser!');
-        return;
-      }
-      
-      // Load model first
-      console.log('📦 Loading AI model...');
-      alert('Loading AI model...');
-      const modelLoaded = await loadModel();
-      if (!modelLoaded) {
-        console.error('❌ Model failed to load');
-        alert('Failed to load AI model. Check internet connection.');
+        updateStatus('Camera API not supported in this browser. Try Chrome or Safari.', 'error');
         return;
       }
 
-      console.log('📹 Requesting camera access...');
-      alert('Requesting camera...');
+      // Load model first
+      updateStatus('Loading AI recognition model...', 'loading');
+      const modelLoaded = await loadModel();
+      if (!modelLoaded) {
+        return;
+      }
+
+      // Request camera access
+      updateStatus('Requesting camera access... Please allow when prompted.', 'loading');
       
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
@@ -131,42 +133,60 @@ const PakistanARGuide = () => {
         }
       });
       
-      console.log('✅ Camera stream acquired');
-      alert('Camera acquired!');
+      updateStatus('Camera access granted. Initializing video...', 'loading');
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+        
+        // Set attributes for better mobile compatibility
         videoRef.current.setAttribute('playsinline', 'true');
         videoRef.current.setAttribute('autoplay', 'true');
+        videoRef.current.setAttribute('muted', 'true');
         
-        console.log('🎬 Waiting for video metadata...');
-        
-        // Wait for video to be ready
-        await new Promise((resolve) => {
+        // Wait for video to load
+        await new Promise((resolve, reject) => {
           videoRef.current.onloadedmetadata = () => {
-            console.log('✅ Video metadata loaded');
+            updateStatus('Video stream ready. Starting playback...', 'loading');
             resolve();
           };
+          
+          videoRef.current.onerror = (err) => {
+            reject(new Error('Video failed to load'));
+          };
+          
+          // Timeout after 10 seconds
+          setTimeout(() => reject(new Error('Video loading timeout')), 10000);
         });
         
-        // Ensure video plays
+        // Start video playback
         try {
           await videoRef.current.play();
-          console.log('▶️ Video playing');
-          alert('Video should be playing now!');
+          updateStatus('Camera active! Point at a monument to identify it.', 'success');
+          setIsScanning(true);
+          
+          // Start scanning after a short delay
+          setTimeout(() => {
+            startScanning();
+          }, 1000);
+          
         } catch (playErr) {
-          console.error('Play error:', playErr);
-          alert('Video play error: ' + playErr.message);
+          console.error('Video play error:', playErr);
+          updateStatus('Video playback failed: ' + playErr.message, 'error');
         }
-        
-        setIsScanning(true);
-        console.log('🔍 Starting scan...');
-        startScanning();
       }
     } catch (err) {
-      console.error('❌ Camera error:', err);
-      alert('Camera error: ' + err.name + ' - ' + err.message);
+      console.error('Camera error:', err);
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        updateStatus('Camera permission denied. Please allow camera access and try again.', 'error');
+      } else if (err.name === 'NotFoundError') {
+        updateStatus('No camera found on this device.', 'error');
+      } else if (err.name === 'NotReadableError') {
+        updateStatus('Camera is already in use by another application.', 'error');
+      } else {
+        updateStatus('Camera error: ' + err.message, 'error');
+      }
     }
   };
 
@@ -185,6 +205,7 @@ const PakistanARGuide = () => {
     setIsScanning(false);
     setRecognizedPlace(null);
     setConfidence(0);
+    setStatusMessage('');
     stopSpeaking();
   };
 
@@ -223,6 +244,8 @@ const PakistanARGuide = () => {
 
   // Start scanning for places
   const startScanning = () => {
+    updateStatus('Scanning for monuments...', 'info');
+    
     scanIntervalRef.current = setInterval(async () => {
       if (!recognizedPlace) {
         const result = await recognizePlace();
@@ -237,13 +260,14 @@ const PakistanARGuide = () => {
               clearInterval(scanIntervalRef.current);
             }
             
+            updateStatus(`${place.name} recognized! Playing audio guide...`, 'success');
             setRecognizedPlace({ ...place, key: placeKey });
             setConfidence(result.confidence);
             speakNarration(place.narration);
           }
         }
       }
-    }, 2000); // Scan every 2 seconds
+    }, 2000);
   };
 
   // Text-to-speech
@@ -260,8 +284,6 @@ const PakistanARGuide = () => {
       utterance.onerror = () => setIsSpeaking(false);
       
       window.speechSynthesis.speak(utterance);
-    } else {
-      alert('Text-to-speech not supported on this browser');
     }
   };
 
@@ -280,6 +302,34 @@ const PakistanARGuide = () => {
     };
   }, []);
 
+  // Status icon
+  const getStatusIcon = () => {
+    switch (statusType) {
+      case 'loading':
+        return <Loader2 className="w-4 h-4 animate-spin" />;
+      case 'success':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'error':
+        return <AlertCircle className="w-4 h-4" />;
+      default:
+        return <Info className="w-4 h-4" />;
+    }
+  };
+
+  // Status color
+  const getStatusColor = () => {
+    switch (statusType) {
+      case 'loading':
+        return 'bg-blue-500/90';
+      case 'success':
+        return 'bg-green-500/90';
+      case 'error':
+        return 'bg-red-500/90';
+      default:
+        return 'bg-gray-500/90';
+    }
+  };
+
   return (
     <div className="w-full h-screen bg-gray-900 relative overflow-hidden">
       {/* Header */}
@@ -290,6 +340,14 @@ const PakistanARGuide = () => {
         </h1>
         <p className="text-gray-300 text-sm mt-1">AI-powered monument recognition</p>
       </div>
+
+      {/* Status Message Bar */}
+      {statusMessage && (
+        <div className={`absolute top-20 left-1/2 transform -translate-x-1/2 z-30 ${getStatusColor()} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 max-w-md text-sm`}>
+          {getStatusIcon()}
+          <span>{statusMessage}</span>
+        </div>
+      )}
 
       {/* Camera View */}
       <div className="relative w-full h-full">
@@ -302,20 +360,10 @@ const PakistanARGuide = () => {
             </p>
             <button
               onClick={startCamera}
-              disabled={modelLoading}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
             >
-              {modelLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Loading AI Model...
-                </>
-              ) : (
-                <>
-                  <Camera className="w-5 h-5" />
-                  Start Camera
-                </>
-              )}
+              <Camera className="w-5 h-5" />
+              Start Camera
             </button>
             <div className="mt-8 text-gray-400 text-sm text-center max-w-md">
               <p className="mb-2">🤖 AI-Powered Recognition</p>
@@ -329,7 +377,6 @@ const PakistanARGuide = () => {
               autoPlay
               playsInline
               muted
-              webkit-playsinline="true"
               className="w-full h-full object-cover"
             />
 
@@ -398,10 +445,6 @@ const PakistanARGuide = () => {
             {!recognizedPlace && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="w-48 h-48 border-4 border-blue-500 rounded-lg animate-pulse"></div>
-                <p className="text-white text-center mt-4 bg-black/50 px-4 py-2 rounded flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  AI scanning for monuments...
-                </p>
               </div>
             )}
 
