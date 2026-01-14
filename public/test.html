@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Test</title>
+</head>
+<body style="margin:0; padding:20px; background:#222;">
+    <h1 style="color:white;">Simple Camera Test</h1>
+    <video id="video" autoplay playsinline muted 
+           style="width: 100%; max-width: 640px; border: 3px solid lime; display:block;"></video>
+    <button onclick="startCamera()" style="margin-top:10px; padding:10px 20px; font-size:16px;">
+        Start Camera
+    </button>
+    <p id="status" style="color:white; margin-top:10px;"></p>
+    
+    <script>
+        async function startCamera() {
+            const video = document.getElementById('video');
+            const status = document.getElementById('status');
+            
+            try {
+                status.textContent = 'Requesting camera...';
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 1280, height: 720 } 
+                });
+                
+                status.textContent = 'Camera granted! Setting up...';
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    status.textContent = 'Metadata loaded! Playing...';
+                    video.play();
+                };
+                
+                setTimeout(() => {
+                    if (!video.paused) {
+                        status.textContent = '✅ SUCCESS! Camera is working!';
+                    } else {
+                        status.textContent = '❌ Video not playing';
+                    }
+                }, 2000);
+                
+            } catch (err) {
+                status.textContent = '❌ Error: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
+```
+
+Save this, then open in browser:
+```
+http://localhost:3000/test.html

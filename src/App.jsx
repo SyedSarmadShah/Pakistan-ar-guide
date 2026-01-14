@@ -8,19 +8,16 @@ const PakistanARGuide = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
-  const [statusType, setStatusType] = useState('info'); // 'info', 'success', 'error', 'loading'
+  const [statusType, setStatusType] = useState('info');
   const [confidence, setConfidence] = useState(0);
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const scanIntervalRef = useRef(null);
   const modelRef = useRef(null);
-  const maxPredictionsRef = useRef(0);
 
-  // Your Teachable Machine model URL
   const MODEL_URL = 'https://teachablemachine.withgoogle.com/models/K9EMps9w-/';
 
-  // Historical places database
   const placesDatabase = {
     taxila: {
       name: "Taxila",
@@ -78,14 +75,12 @@ const PakistanARGuide = () => {
     }
   };
 
-  // Update status message
   const updateStatus = (message, type = 'info') => {
     setStatusMessage(message);
     setStatusType(type);
     console.log(`[${type.toUpperCase()}] ${message}`);
   };
 
-  // Load Teachable Machine model
   const loadModel = async () => {
     try {
       updateStatus('Loading AI model...', 'loading');
@@ -93,104 +88,118 @@ const PakistanARGuide = () => {
       const metadataURL = MODEL_URL + 'metadata.json';
 
       modelRef.current = await tmImage.load(modelURL, metadataURL);
-      maxPredictionsRef.current = modelRef.current.getTotalClasses();
-      
-      updateStatus('AI model loaded successfully!', 'success');
+      updateStatus('AI model loaded!', 'success');
       return true;
     } catch (error) {
-      console.error('Model loading error:', error);
-      updateStatus('Failed to load AI model. Check your internet connection.', 'error');
+      console.error('Model error:', error);
+      updateStatus('AI model failed to load: ' + error.message, 'error');
       return false;
     }
   };
 
-  // Start camera
   const startCamera = async () => {
     try {
-      updateStatus('Initializing camera system...', 'loading');
+      updateStatus('Initializing...', 'loading');
       
-      // Check if camera API is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        updateStatus('Camera API not supported in this browser. Try Chrome or Safari.', 'error');
+      if (!navigator.mediaDevices?.getUserMedia) {
+        updateStatus('Camera not supported', 'error');
         return;
       }
 
-      // Load model first
-      updateStatus('Loading AI recognition model...', 'loading');
+      // Load AI model first
       const modelLoaded = await loadModel();
       if (!modelLoaded) {
+        updateStatus('Continue without AI? Refresh to retry.', 'error');
         return;
       }
 
-      // Request camera access
-      updateStatus('Requesting camera access... Please allow when prompted.', 'loading');
+      updateStatus('Requesting camera...', 'loading');
       
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
-          facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
         }
       });
       
-      updateStatus('Camera access granted. Initializing video...', 'loading');
+      updateStatus('Camera granted! Starting video...', 'loading');
+      
+      setIsScanning(true);
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         
-        // Set attributes for better mobile compatibility
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.setAttribute('autoplay', 'true');
-        videoRef.current.setAttribute('muted', 'true');
-        
-        // Wait for video to load
-        await new Promise((resolve, reject) => {
-          videoRef.current.onloadedmetadata = () => {
-            updateStatus('Video stream ready. Starting playback...', 'loading');
-            resolve();
-          };
-          
-          videoRef.current.onerror = (err) => {
-            reject(new Error('Video failed to load'));
-          };
-          
-          // Timeout after 10 seconds
-          setTimeout(() => reject(new Error('Video loading timeout')), 10000);
-        });
-        
-        // Start video playback
         try {
           await videoRef.current.play();
-          updateStatus('Camera active! Point at a monument to identify it.', 'success');
-          setIsScanning(true);
-          
-          // Start scanning after a short delay
-          setTimeout(() => {
-            startScanning();
-          }, 1000);
-          
+          updateStatus('✅ Camera active! Scanning for monuments...', 'success');
+          startScanning();
         } catch (playErr) {
-          console.error('Video play error:', playErr);
-          updateStatus('Video playback failed: ' + playErr.message, 'error');
+          updateStatus('Play error: ' + playErr.message, 'error');
         }
       }
+      
     } catch (err) {
       console.error('Camera error:', err);
-      
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        updateStatus('Camera permission denied. Please allow camera access and try again.', 'error');
-      } else if (err.name === 'NotFoundError') {
-        updateStatus('No camera found on this device.', 'error');
-      } else if (err.name === 'NotReadableError') {
-        updateStatus('Camera is already in use by another application.', 'error');
-      } else {
-        updateStatus('Camera error: ' + err.message, 'error');
-      }
+      updateStatus('Camera error: ' + err.message, 'error');
+      setIsScanning(false);
     }
   };
 
-  // Stop camera
+  const recognizePlace = async () => {
+    if (!modelRef.current || !videoRef.current) return null;
+
+    try {
+      const prediction = await modelRef.current.predict(videoRef.current);
+      
+      let maxConfidence = 0;
+      let recognizedClass = null;
+
+      prediction.forEach(pred => {
+        if (pred.probability > maxConfidence) {
+          maxConfidence = pred.probability;
+          recognizedClass = pred.className.toLowerCase();
+        }
+      });
+
+      if (maxConfidence > 0.7) {
+        return {
+          place: recognizedClass,
+          confidence: maxConfidence
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Recognition error:', error);
+      return null;
+    }
+  };
+
+  const startScanning = () => {
+    scanIntervalRef.current = setInterval(async () => {
+      if (!recognizedPlace) {
+        const result = await recognizePlace();
+        
+        if (result && result.confidence > 0.7) {
+          const placeKey = result.place.toLowerCase().replace(/[^a-z]/g, '');
+          const place = placesDatabase[placeKey];
+          
+          if (place) {
+            if (scanIntervalRef.current) {
+              clearInterval(scanIntervalRef.current);
+            }
+            
+            updateStatus(`${place.name} recognized!`, 'success');
+            setRecognizedPlace({ ...place, key: placeKey });
+            setConfidence(result.confidence);
+            speakNarration(place.narration);
+          }
+        }
+      }
+    }, 2000);
+  };
+
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -204,135 +213,52 @@ const PakistanARGuide = () => {
     }
     setIsScanning(false);
     setRecognizedPlace(null);
-    setConfidence(0);
     setStatusMessage('');
-    stopSpeaking();
-  };
-
-  // Real ML image recognition
-  const recognizePlace = async () => {
-    if (!modelRef.current || !videoRef.current) return null;
-
-    try {
-      const prediction = await modelRef.current.predict(videoRef.current);
-      
-      // Find highest confidence prediction
-      let maxConfidence = 0;
-      let recognizedClass = null;
-
-      prediction.forEach(pred => {
-        if (pred.probability > maxConfidence) {
-          maxConfidence = pred.probability;
-          recognizedClass = pred.className.toLowerCase();
-        }
-      });
-
-      // Only trigger if confidence > 70%
-      if (maxConfidence > 0.7) {
-        return {
-          place: recognizedClass,
-          confidence: maxConfidence
-        };
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Recognition error:', error);
-      return null;
+    setConfidence(0);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
     }
+    setIsSpeaking(false);
   };
 
-  // Start scanning for places
-  const startScanning = () => {
-    updateStatus('Scanning for monuments...', 'info');
-    
-    scanIntervalRef.current = setInterval(async () => {
-      if (!recognizedPlace) {
-        const result = await recognizePlace();
-        
-        if (result && result.confidence > 0.7) {
-          const placeKey = result.place.toLowerCase().replace(/[^a-z]/g, '');
-          const place = placesDatabase[placeKey];
-          
-          if (place) {
-            // Stop scanning once we recognize something
-            if (scanIntervalRef.current) {
-              clearInterval(scanIntervalRef.current);
-            }
-            
-            updateStatus(`${place.name} recognized! Playing audio guide...`, 'success');
-            setRecognizedPlace({ ...place, key: placeKey });
-            setConfidence(result.confidence);
-            speakNarration(place.narration);
-          }
-        }
-      }
-    }, 2000);
-  };
-
-  // Text-to-speech
   const speakNarration = (text) => {
     if ('speechSynthesis' in window) {
-      stopSpeaking();
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
       utterance.rate = 0.9;
-      utterance.pitch = 1;
-      
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      
       window.speechSynthesis.speak(utterance);
     }
   };
 
-  // Stop speaking
-  const stopSpeaking = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-  };
-
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopCamera();
     };
   }, []);
 
-  // Status icon
   const getStatusIcon = () => {
     switch (statusType) {
-      case 'loading':
-        return <Loader2 className="w-4 h-4 animate-spin" />;
-      case 'success':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'error':
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <Info className="w-4 h-4" />;
+      case 'loading': return <Loader2 className="w-4 h-4 animate-spin" />;
+      case 'success': return <CheckCircle className="w-4 h-4" />;
+      case 'error': return <AlertCircle className="w-4 h-4" />;
+      default: return <Info className="w-4 h-4" />;
     }
   };
 
-  // Status color
   const getStatusColor = () => {
     switch (statusType) {
-      case 'loading':
-        return 'bg-blue-500/90';
-      case 'success':
-        return 'bg-green-500/90';
-      case 'error':
-        return 'bg-red-500/90';
-      default:
-        return 'bg-gray-500/90';
+      case 'loading': return 'bg-blue-500/90';
+      case 'success': return 'bg-green-500/90';
+      case 'error': return 'bg-red-500/90';
+      default: return 'bg-gray-500/90';
     }
   };
 
   return (
     <div className="w-full h-screen bg-gray-900 relative overflow-hidden">
-      {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent p-4">
         <h1 className="text-white text-xl font-bold flex items-center gap-2">
           <MapPin className="w-6 h-6" />
@@ -341,7 +267,6 @@ const PakistanARGuide = () => {
         <p className="text-gray-300 text-sm mt-1">AI-powered monument recognition</p>
       </div>
 
-      {/* Status Message Bar */}
       {statusMessage && (
         <div className={`absolute top-20 left-1/2 transform -translate-x-1/2 z-30 ${getStatusColor()} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 max-w-md text-sm`}>
           {getStatusIcon()}
@@ -349,7 +274,6 @@ const PakistanARGuide = () => {
         </div>
       )}
 
-      {/* Camera View */}
       <div className="relative w-full h-full">
         {!isScanning ? (
           <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-800 to-gray-900 p-6">
@@ -377,10 +301,15 @@ const PakistanARGuide = () => {
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                backgroundColor: '#000'
+              }}
             />
 
-            {/* AR Markers */}
             {recognizedPlace && recognizedPlace.markers && (
               <div className="absolute inset-0 pointer-events-none">
                 {recognizedPlace.markers.map(marker => (
@@ -399,7 +328,6 @@ const PakistanARGuide = () => {
               </div>
             )}
 
-            {/* Recognition Overlay */}
             {recognizedPlace && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent p-6 pb-8">
                 <div className="flex items-start justify-between mb-3">
@@ -431,7 +359,7 @@ const PakistanARGuide = () => {
                   </div>
                   {isSpeaking && (
                     <button
-                      onClick={stopSpeaking}
+                      onClick={() => window.speechSynthesis.cancel()}
                       className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
                     >
                       Stop
@@ -441,14 +369,12 @@ const PakistanARGuide = () => {
               </div>
             )}
 
-            {/* Scanning indicator */}
             {!recognizedPlace && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="w-48 h-48 border-4 border-blue-500 rounded-lg animate-pulse"></div>
               </div>
             )}
-
-            {/* Stop button */}
+            
             <button
               onClick={stopCamera}
               className="absolute top-20 right-4 bg-red-500 hover:bg-red-600 text-white p-3 rounded-full shadow-lg z-30"
@@ -459,7 +385,6 @@ const PakistanARGuide = () => {
         )}
       </div>
 
-      {/* Info Modal */}
       {showInfo && recognizedPlace && (
         <div className="absolute inset-0 bg-black/90 z-40 flex items-center justify-center p-4">
           <div className="bg-gray-800 rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto">
@@ -481,7 +406,7 @@ const PakistanARGuide = () => {
                     {recognizedPlace.location}
                   </p>
                   <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                    AI Confidence: {Math.round(confidence * 100)}%
+                    AI: {Math.round(confidence * 100)}%
                   </span>
                 </div>
                 <p className="text-gray-400 text-sm mb-3">{recognizedPlace.period}</p>
