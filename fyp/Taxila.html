@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover Taxila - Ancient Heritage of Punjab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #8b4513;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #8b4513;
+        }
+
+        .menu-toggle {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(135deg, #8b4513 0%, #d2691e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+        }
+
+        .hero-content {
+            z-index: 1;
+            max-width: 800px;
+            padding: 2rem;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: white;
+            color: #8b4513;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        /* About Section */
+        .about {
+            padding: 5rem 5%;
+            background: white;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            color: #8b4513;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 800px;
+            margin: 0 auto 3rem;
+        }
+
+        /* Places Section */
+        .places {
+            padding: 5rem 5%;
+            background: #f8f9fa;
+        }
+
+        .places-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .place-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.35s;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .place-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .place-card:hover {
+            transform: translateY(-10px) scale(1.01);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .place-img {
+            width: 100%;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: white;
+            will-change: transform;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .place-info {
+            padding: 1.5rem;
+        }
+
+        .place-info h3 {
+            color: #8b4513;
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        .place-info p {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .place-tag {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: #fff3e0;
+            color: #8b4513;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Add Place Section */
+        .add-place {
+            padding: 5rem 5%;
+            background: linear-gradient(135deg, #d2691e 0%, #8b4513 100%);
+            color: white;
+        }
+
+        .add-place-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #8b4513;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #8b4513;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #6b3410;
+        }
+
+        /* Statistics Section */
+        .stats {
+            padding: 5rem 5%;
+            background: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 15px;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #8b4513;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #1a1a1a;
+            color: white;
+            padding: 3rem 5%;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            color: #d2691e;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section a {
+            color: #aaa;
+            text-decoration: none;
+            display: block;
+            margin: 0.5rem 0;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #333;
+            color: #aaa;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        /* Success Message */
+        .success-message {
+            display: none;
+            padding: 1rem;
+            background: #4caf50;
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* New animations */
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(-1deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+
+        /* Nav link intro */
+        .nav-links a {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Mobile menu open state (use class toggle from JS) */
+        .nav-links.open {
+            display: flex !important;
+            flex-direction: column;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: slideDown 0.25s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">🏛️ Discover Taxila</div>
+        <ul class="nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#places">Places</a></li>
+            <li><a href="#add">Add Place</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+        <div class="menu-toggle">☰</div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Welcome to Taxila</h1>
+            <p>UNESCO World Heritage Site - Where Ancient Gandhara Civilization Comes Alive</p>
+            <a href="#places" class="cta-button">Explore Heritage Sites</a>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+        <h2 class="section-title">About Taxila</h2>
+        <p class="section-subtitle">
+            Taxila is one of the most important archaeological sites in Asia, located in Punjab, Pakistan. 
+            Founded around 1000 BCE, it became a major Buddhist learning center and has ruins spanning several centuries. 
+            The city was declared a UNESCO World Heritage Site in 1980 and attracts visitors from around the world.
+        </p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">3000+</div>
+                <div class="stat-label">Years of History</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">UNESCO</div>
+                <div class="stat-label">World Heritage</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">50+</div>
+                <div class="stat-label">Archaeological Sites</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4000+</div>
+                <div class="stat-label">Ancient Artifacts</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Famous Places Section -->
+    <section class="places" id="places">
+        <h2 class="section-title">Famous Places in Taxila</h2>
+        <p class="section-subtitle">Explore the ancient heritage and historical landmarks</p>
+        
+        <div class="places-grid" id="placesGrid">
+            <!-- Default Places -->
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🏛️</div>
+                <div class="place-info">
+                    <h3>Taxila Museum</h3>
+                    <p>One of the most important museums in Pakistan, housing over 4,000 artifacts from the Gandhara civilization including Buddhist sculptures, jewelry, and ancient coins.</p>
+                    <span class="place-tag">Museum</span>
+                    <span class="place-tag">UNESCO</span>
+                    <span class="place-tag">History</span>
+                </div>
+            </div>
+
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">⛩️</div>
+                <div class="place-info">
+                    <h3>Dharmarajika Stupa</h3>
+                    <p>The largest and most impressive stupa in Taxila, dating back to the 3rd century BCE. Built by Emperor Ashoka to house Buddhist relics.</p>
+                    <span class="place-tag">Buddhist Site</span>
+                    <span class="place-tag">Ancient</span>
+                </div>
+            </div>
+
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">🏰</div>
+                <div class="place-info">
+                    <h3>Sirkap City Ruins</h3>
+                    <p>Ancient city ruins from the 2nd century BCE, showcasing Greek, Persian, and Indian architectural influences. Features the famous Double-Headed Eagle stupa.</p>
+                    <span class="place-tag">Archaeological</span>
+                    <span class="place-tag">Ruins</span>
+                </div>
+            </div>
+
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">🗿</div>
+                <div class="place-info">
+                    <h3>Jaulian Monastery</h3>
+                    <p>Well-preserved Buddhist monastery complex with stunning stucco sculptures and elaborate stone carvings, offering panoramic views of Taxila valley.</p>
+                    <span class="place-tag">Monastery</span>
+                    <span class="place-tag">Buddhist</span>
+                </div>
+            </div>
+
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">⛰️</div>
+                <div class="place-info">
+                    <h3>Mohra Muradu</h3>
+                    <p>Buddhist monastery complex from the 2nd century CE, featuring a beautiful main stupa surrounded by chapels containing Buddha statues.</p>
+                    <span class="place-tag">Monastery</span>
+                    <span class="place-tag">Scenic</span>
+                </div>
+            </div>
+
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">🏺</div>
+                <div class="place-info">
+                    <h3>Bhir Mound</h3>
+                    <p>The oldest settlement in Taxila, dating back to the 6th century BCE. Contains ruins from the Achaemenid and Mauryan periods.</p>
+                    <span class="place-tag">Ancient City</span>
+                    <span class="place-tag">Historical</span>
+                </div>
+            </div>
+
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">🕌</div>
+                <div class="place-info">
+                    <h3>Jandial Temple</h3>
+                    <p>A Zoroastrian fire temple with Greek architectural influence, one of the few remaining structures of its kind in Pakistan.</p>
+                    <span class="place-tag">Temple</span>
+                    <span class="place-tag">Unique</span>
+                </div>
+            </div>
+
+            <div class="place-card">
+                <div class="place-img" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">🏛️</div>
+                <div class="place-info">
+                    <h3>Sirsukh Ruins</h3>
+                    <p>Ancient fortified city built by the Kushans in the 1st century CE, featuring massive defensive walls and urban planning.</p>
+                    <span class="place-tag">Fortification</span>
+                    <span class="place-tag">Kushan Era</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Add Place Section -->
+    <section class="add-place" id="add">
+        <h2 class="section-title" style="color: white;">Add a Famous Place</h2>
+        <p class="section-subtitle" style="color: rgba(255,255,255,0.9);">Know a hidden gem in Taxila? Share it with us!</p>
+        
+        <div class="add-place-container">
+            <div class="success-message" id="successMessage">
+                ✓ Place added successfully! Thank you for your contribution.
+            </div>
+            
+            <form id="addPlaceForm">
+                <div class="form-group">
+                    <label for="placeName">Place Name *</label>
+                    <input type="text" id="placeName" name="placeName" required placeholder="e.g., Ancient Temple">
+                </div>
+
+                <div class="form-group">
+                    <label for="placeDescription">Description *</label>
+                    <textarea id="placeDescription" name="placeDescription" required placeholder="Describe the place, its history, and significance..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="placeCategory">Category *</label>
+                    <select id="placeCategory" name="placeCategory" required>
+                        <option value="">Select a category</option>
+                        <option value="Museum">Museum</option>
+                        <option value="Buddhist Site">Buddhist Site</option>
+                        <option value="Archaeological">Archaeological Site</option>
+                        <option value="Monastery">Monastery</option>
+                        <option value="Temple">Temple</option>
+                        <option value="Historical">Historical Site</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="placeTags">Tags (comma separated)</label>
+                    <input type="text" id="placeTags" name="placeTags" placeholder="e.g., Ancient, UNESCO, Historical">
+                </div>
+
+                <div class="form-group">
+                    <label for="placeColor">Card Color Theme</label>
+                    <select id="placeColor" name="placeColor">
+                        <option value="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">Purple</option>
+                        <option value="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">Pink</option>
+                        <option value="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">Blue</option>
+                        <option value="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">Green</option>
+                        <option value="linear-gradient(135deg, #fa709a 0%, #fee140 100%)">Orange</option>
+                        <option value="linear-gradient(135deg, #30cfd0 0%, #330867 100%)">Dark Blue</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="placeIcon">Icon (emoji)</label>
+                    <input type="text" id="placeIcon" name="placeIcon" placeholder="e.g., 🏛️ or 🗿" maxlength="2">
+                </div>
+
+                <button type="submit" class="submit-btn">Add Place</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Taxila</h4>
+                <a href="#">History</a>
+                <a href="#">UNESCO Status</a>
+                <a href="#">Gandhara Art</a>
+            </div>
+
+            <div class="footer-section">
+                <h4>Visit Information</h4>
+                <a href="#">Opening Hours</a>
+                <a href="#">Ticket Prices</a>
+                <a href="#">How to Reach</a>
+                <a href="#">Guided Tours</a>
+            </div>
+
+            <div class="footer-section">
+                <h4>Resources</h4>
+                <a href="#">Photo Gallery</a>
+                <a href="#">Research Papers</a>
+                <a href="#">Virtual Tour</a>
+                <a href="#">FAQs</a>
+            </div>
+
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <a href="#">Facebook</a>
+                <a href="#">Instagram</a>
+                <a href="#">Twitter</a>
+                <a href="#">Email Us</a>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2025 Discover Taxila. A UNESCO World Heritage Site | Made with ❤️ for Heritage Preservation</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Intro animations and staggered reveal
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-links a');
+            navLinks.forEach((a, i) => {
+                a.style.opacity = '0';
+                a.style.transform = 'translateY(-8px)';
+                a.style.transition = `opacity 0.35s ${0.08 * i + 0.08}s, transform 0.35s ${0.08 * i + 0.08}s`;
+            });
+            setTimeout(() => navLinks.forEach(a => { a.style.opacity = '1'; a.style.transform = 'translateY(0)'; }), 120);
+
+            const cards = document.querySelectorAll('.place-card');
+            cards.forEach((card, i) => {
+                setTimeout(() => card.classList.add('show'), 200 + i * 110);
+            });
+        });
+
+        // Add scroll effect to navbar
+        window.addEventListener('scroll', function() {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+            } else {
+                nav.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+            }
+        });
+
+        // Handle form submission to add new place
+        document.getElementById('addPlaceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const placeName = document.getElementById('placeName').value;
+            const placeDescription = document.getElementById('placeDescription').value;
+            const placeCategory = document.getElementById('placeCategory').value;
+            const placeTags = document.getElementById('placeTags').value;
+            const placeColor = document.getElementById('placeColor').value;
+            const placeIcon = document.getElementById('placeIcon').value || '🏛️';
+            
+            // Create new place card
+            const placeCard = document.createElement('div');
+            placeCard.className = 'place-card';
+            placeCard.style.animation = 'fadeInUp 0.5s ease-out';
+            
+            // Create tags HTML
+            const tags = placeTags.split(',').map(tag => 
+                `<span class="place-tag">${tag.trim()}</span>`
+            ).join('');
+            
+            placeCard.innerHTML = `
+                <div class="place-img" style="background: ${placeColor};">${placeIcon}</div>
+                <div class="place-info">
+                    <h3>${placeName}</h3>
+                    <p>${placeDescription}</p>
+                    <span class="place-tag">${placeCategory}</span>
+                    ${tags}
+                </div>
+            `;
+            
+            // Add to grid and animate in
+            document.getElementById('placesGrid').appendChild(placeCard);
+            setTimeout(() => placeCard.classList.add('show'), 40);
+            
+            // Show success message
+            const successMessage = document.getElementById('successMessage');
+            successMessage.classList.add('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 3000);
+            
+            // Reset form
+            this.reset();
+            
+            // Scroll to the new place
+            setTimeout(() => {
+                placeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        });
+
+        // Mobile menu toggle - use class toggle for smooth animation
+        document.querySelector('.menu-toggle').addEventListener('click', function() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.classList.toggle('open');
+        });
+    </script>
+</body>
+</html>

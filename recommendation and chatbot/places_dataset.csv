@@ -1,0 +1,68 @@
+place_name,city,province,category,best_season,rating
+Hunza Valley,Karimabad,Gilgit-Baltistan,Valley,Spring/Autumn,4.8
+Badshahi Mosque,Lahore,Punjab,Historical/Religious,Winter,4.7
+Skardu Valley,Skardu,Gilgit-Baltistan,Valley/Adventure,Summer,4.6
+Swat Valley,Mingora,Khyber Pakhtunkhwa,Valley,Spring/Summer,4.5
+Faisal Mosque,Islamabad,Islamabad Capital Territory,Religious/Architecture,All,4.9
+Mohenjo-daro,Larkana,Sindh,Archaeological,Winter,4.4
+Deosai National Park,Skardu,Gilgit-Baltistan,National Park/Nature,Summer,4.7
+Lahore Fort,Lahore,Punjab,Historical,Winter,4.6
+Lake Saiful Muluk,Naran,Khyber Pakhtunkhwa,Lake/Nature,Summer,4.8
+Ziarat,Ziarat,Balochistan,Hill Station,Summer,4.3
+Shalimar Gardens,Lahore,Punjab,Historical/Garden,Winter,4.6
+Attabad Lake,Hunza,Gilgit-Baltistan,Lake,Summer,4.7
+Makli Necropolis,Thatta,Sindh,Archaeological/Tomb,Winter,4.3
+Rohtas Fort,Jhelum,Punjab,Historical,Winter,4.5
+Naltar Valley,Naltar,Gilgit-Baltistan,Valley/Skiing,Winter,4.6
+Wagah Border,Lahore,Punjab,Historical/Event,Winter,4.5
+Minar-e-Pakistan,Lahore,Punjab,Historical/Monument,Winter,4.6
+Wazir Khan Mosque,Lahore,Punjab,Historical/Religious,Winter,4.7
+Katas Raj Temples,Chakwal,Punjab,Historical/Religious,Winter,4.4
+Taxila Museum,Taxila,Punjab,Historical/Museum,All,4.5
+Hiran Minar,Sheikhupura,Punjab,Historical/Monument,Winter,4.3
+Derawar Fort,Bahawalpur,Punjab,Historical/Fort,Winter,4.6
+Mahabat Khan Mosque,Peshawar,Khyber Pakhtunkhwa,Historical/Religious,Winter,4.5
+Takht-i-Bahi,Mardan,Khyber Pakhtunkhwa,Archaeological/Religious,Winter,4.6
+Kalam Valley,Kalam,Khyber Pakhtunkhwa,Valley,Summer,4.7
+Malam Jabba,Swat,Khyber Pakhtunkhwa,Hill Station/Skiing,Winter,4.5
+Chitral Valley,Chitral,Khyber Pakhtunkhwa,Valley,Summer,4.6
+Shogran,Kaghan Valley,Khyber Pakhtunkhwa,Hill Station,Summer,4.4
+Ansoo Lake,Kaghan Valley,Khyber Pakhtunkhwa,Lake/Trekking,Summer,4.7
+Rakaposhi Base Camp,Nagar,Gilgit-Baltistan,Trekking/Nature,Summer,4.8
+Passu Cones,Gojal,Gilgit-Baltistan,Mountain,Summer,4.9
+Khunjerab Pass,Hunza,Gilgit-Baltistan,Mountain Pass,Summer,4.8
+Baltit Fort,Karimabad,Gilgit-Baltistan,Historical/Fort,Spring/Autumn,4.7
+Altit Fort,Karimabad,Gilgit-Baltistan,Historical/Fort,Spring/Autumn,4.6
+Fairy Meadows,Diamer,Gilgit-Baltistan,Meadow/Trekking,Summer,4.9
+Jaulian Monastery,Taxila,Punjab,Buddhist Monastery/Archaeological,Winter,4.6
+Dharmarajika Stupa,Taxila,Punjab,Buddhist Stupa/Archaeological,Winter,4.5
+Sirkap Ruins,Taxila,Punjab,Archaeological City,Winter,4.4
+Mohra Moradu,Taxila,Punjab,Buddhist Monastery/Archaeological,Winter,4.3
+Bhir Mound,Taxila,Punjab,Ancient Settlement/Archaeological,Winter,4.2
+Jandial Temple,Taxila,Punjab,Ancient Temple/Archaeological,Winter,4.1
+Pakistan Monument,Islamabad,Islamabad Capital Territory,National Monument/Architecture,All,4.7
+Lok Virsa Museum,Islamabad,Islamabad Capital Territory,Museum/Cultural,All,4.6
+Rawal Lake,Islamabad,Islamabad Capital Territory,Lake/Nature,Spring/Summer,4.5
+Shakarparian Hills,Islamabad,Islamabad Capital Territory,Hills/Nature,Spring,4.6
+Margalla Hills National Park,Islamabad,Islamabad Capital Territory,National Park/Hiking,Spring/Autumn,4.8
+Daman-e-Koh,Islamabad,Islamabad Capital Territory,Hill Viewpoint,Spring/Autumn,4.6
+Pir Sohawa,Islamabad,Islamabad Capital Territory,Hill Station/Viewpoint,Summer,4.7
+Japanese Park,Islamabad,Islamabad Capital Territory,Recreation/Park,Spring,4.4
+Rose and Jasmine Garden,Islamabad,Islamabad Capital Territory,Garden/Nature,Spring,4.5
+Saidpur Village,Islamabad,Islamabad Capital Territory,Heritage Village/Culture,All,4.6
+F-9 Park,Islamabad,Islamabad Capital Territory,Urban Park/Recreation,Spring,4.5
+Shah Allah Ditta Caves,Islamabad,Islamabad Capital Territory,Historical/Caves,Winter,4.4
+Khanpur Dam,Haripur,Khyber Pakhtunkhwa,Dam/Water Sports,Summer,4.6
+Ayubia National Park,Abbottabad,Khyber Pakhtunkhwa,National Park/Nature,Summer,4.7
+Murree Hills,Murree,Punjab,Hill Station,Summer,4.6
+Patriata Chair Lift,Murree,Punjab,Hill Station/Adventure,Summer,4.5
+Nathia Gali,Abbottabad,Khyber Pakhtunkhwa,Hill Station,Summer,4.6
+Mukeshpuri,Abbottabad,Khyber Pakhtunkhwa,Peak/Trekking,Summer,4.7
+Dunga Gali,Abbottabad,Khyber Pakhtunkhwa,Hill Station,Summer,4.5
+Thandiani,Abbottabad,Khyber Pakhtunkhwa,Hill Station,Summer,4.6
+Banjosa Lake,Rawalakot,Khyber Pakhtunkhwa,Lake,Summer,4.5
+Kallar Kahar,Chakwal,Punjab,Lake/Recreation,Winter,4.3
+Neela Wahn,Chakwal,Punjab,Waterfall/Trekking,Winter,4.4
+Swaik Lake,Chakwal,Punjab,Lake/Trekking,Winter,4.5
+Soon Valley,Khushab,Punjab,Valley,Winter,4.4
+
