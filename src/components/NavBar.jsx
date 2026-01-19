@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Moon, Sun, Heart } from 'lucide-react';
+import { Menu, X, Moon, Sun, Heart, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../context/DarkModeContext';
+import { useAuth } from '../context/AuthContext';
 
 const NavBar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -9,6 +10,7 @@ const NavBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleDarkMode } = useDarkMode();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const updateFavCount = () => {
@@ -37,6 +39,12 @@ const NavBar = () => {
 
   const handleNavClick = (path) => {
     navigate(path);
+    setMobileMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
     setMobileMenuOpen(false);
   };
 
@@ -88,6 +96,25 @@ const NavBar = () => {
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
+
+            {/* User Profile & Logout */}
+            <div className="flex items-center gap-3 pl-6 border-l border-gray-700">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-white">{user?.name || 'User'}</p>
+                <p className="text-xs text-gray-400">{user?.email || 'guest'}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className={`p-2 rounded-lg transition ${
+                  isDark 
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                    : 'bg-red-100 text-red-600 hover:bg-red-200'
+                }`}
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Mobile Menu Button & Dark Mode */}
@@ -136,6 +163,19 @@ const NavBar = () => {
                 )}
               </button>
             ))}
+
+            {/* Mobile Logout */}
+            <button
+              onClick={handleLogout}
+              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center gap-2 ${
+                isDark
+                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                  : 'bg-red-100 text-red-600 hover:bg-red-200'
+              }`}
+            >
+              <LogOut className="w-5 h-5" />
+              Logout
+            </button>
           </div>
         )}
       </div>
