@@ -11,17 +11,17 @@ const HomePage = () => {
   const places = [
     {
       name: "Badshahi Mosque",
-      image: "https://images.unsplash.com/photo-1605662503629-e58f91ce4a72?w=800&h=600&fit=crop",
+      image: "/images/badshahi-mosque.jpg",
       description: "Iconic red sandstone mosque in Lahore"
     },
     {
       name: "Mohenjo-daro",
-      image: "https://images.unsplash.com/photo-1587573171259-18c88e0b5e5f?w=800&h=600&fit=crop",
+      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Mohenjo-daro-2010.jpg/800px-Mohenjo-daro-2010.jpg",
       description: "Ancient Indus Valley Civilization site"
     },
     {
       name: "Taxila",
-      image: "https://images.unsplash.com/photo-1516156008625-3a9d6067fab7?w=800&h=600&fit=crop",
+      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Dharmarajika_stupa_02.jpg/800px-Dharmarajika_stupa_02.jpg",
       description: "Historic Buddhist learning center"
     }
   ];
