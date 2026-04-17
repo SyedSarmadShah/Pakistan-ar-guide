@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<meta charset="UTF-8">
+<title>Pakistan Tourism Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+h1 {
+    text-align: center;
+    color: #005a78;
+    margin-bottom: 30px;
+    font-size: 2.5em;
+    font-weight: 600;
+}
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+input, select {
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+input:focus, select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 8px rgba(0,123,255,0.2);
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+th, td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+th {
+    background: linear-gradient(to right, #005000, #00A000);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+tr:hover {
+    background-color: #f1f1f1;
+}
+.rating {
+    font-weight: bold;
+    color: #ff9800;
+    font-size: 1.1em;
+}
+
+/* Card View Styles */
+.card-view {
+    display: none;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+}
+.card h3 {
+    margin: 0 0 10px;
+    color: #008000;
+}
+.card p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+.card .rating {
+    font-size: 1.2em;
+}
+
+/* View Switcher */
+.view-switcher {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.view-switcher button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 0 5px;
+    transition: background-color 0.3s;
+}
+
+.view-switcher button.active {
+    background-color: #005a78;
+}
+
+/* Card View Styles */
+#header-section {
+    position: relative;
+    padding: 20px 20px 40px 20px; /* Add more padding at the bottom */
+    color: white; /* Ensure text within header is readable */
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.7); /* Enhance text readability */
+    margin-bottom: 20px; /* Space between header and table/card view */
+    border-radius: 8px; /* Match other elements' styling */
+    overflow: hidden; /* Ensure pseudo-element stays within bounds */
+}
+
+#header-section .video-background {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+    z-index: -2;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+#header-section .video-background iframe {
+    width: 100vw;
+    height: 56.25vw; /* 16:9 aspect ratio */
+    min-width: 177.77vh; /* 16:9 aspect ratio */
+    min-height: 100vh;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#header-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Dark overlay */
+    z-index: -1; /* Behind content, above background image */
+}
+
+#header-section h1 {
+    color: white; /* Override existing h1 color for readability */
+    position: relative; /* Bring to front of overlay */
+    z-index: 1;
+}
+
+#header-section .controls,
+#header-section .view-switcher {
+    position: relative; /* Bring to front of overlay */
+    z-index: 1;
+}
+
+#header-section input,
+#header-section select,
+#header-section .view-switcher button {
+    background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent background for controls */
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #333;
+}
+
+#header-section input::placeholder,
+#header-section select {
+    color: #555;
+}
+
+#header-section .view-switcher button {
+    color: #333;
+}
+
+#header-section .view-switcher button.active {
+    background-color: #005a78;
+    color: white;
+}
+</style>
+</head>
+
+<body>
+
+<div id="header-section">
+<div class="video-background">
+    <iframe src="https://www.youtube.com/embed/y0iOFvOGnMo?autoplay=1&mute=1&loop=1&playlist=y0iOFvOGnMo&controls=0&showinfo=0&autohide=1&modestbranding=1&rel=0"
+            frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+</div>
+<h1>Pakistan Tourism Guide</h1>
+
+<div class="controls">
+    <input type="text" id="searchInput" placeholder="Search place, city">
+    <select id="provinceFilter"></select>
+    <select id="seasonFilter"></select>
+</div>
+
+<div class="view-switcher">
+    <button id="tableViewBtn" class="active">Table View</button>
+    <button id="cardViewBtn">Card View</button>
+</div>
+</div>
+
+<div id="cardView" class="card-view"></div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Place</th>
+            <th>City</th>
+            <th>Province</th>
+            <th>Category</th>
+            <th>Best Season</th>
+            <th onclick="sortByRating()">Rating ⬍</th>
+            <th>Weather</th>
+            <th>Travel Advice</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const WEATHER_API_KEY = "5989bfd5387805e4603d064014e6032f";
+
+    const cityMap = {
+        // Gilgit-Baltistan
+        "Karimabad": "Hunza",
+        "Hunza": "Hunza",
+        "Skardu": "Skardu",
+        "Naltar": "Gilgit",
+        "Nagar": "Gilgit",
+        "Gojal": "Hunza",
+        "Diamer": "Chilas",
+
+        // Khyber Pakhtunkhwa
+        "Mingora": "Mingora",
+        "Swat": "Mingora",
+        "Naran": "Naran",
+        "Kaghan Valley": "Naran",
+        "Kalam": "Kalam",
+        "Chitral": "Chitral",
+        "Haripur": "Haripur",
+        "Abbottabad": "Abbottabad",
+        "Mardan": "Mardan",
+        "Peshawar": "Peshawar",
+
+        // Punjab
+        "Lahore": "Lahore",
+        "Jhelum": "Jhelum",
+        "Chakwal": "Chakwal",
+        "Sheikhupura": "Sheikhupura",
+        "Bahawalpur": "Bahawalpur",
+        "Taxila": "Taxila",
+        "Murree": "Murree",
+
+        // Sindh
+        "Larkana": "Larkana",
+        "Thatta": "Thatta",
+
+        // Balochistan
+        "Ziarat": "Ziarat",
+
+        // Islamabad
+        "Islamabad": "Islamabad"
+    };
+
+    const weatherCache = {};
+
+    const coordFallback = {
+        "Karimabad": { lat: 36.3167, lon: 74.6500 },
+        "Hunza": { lat: 36.3167, lon: 74.6500 },
+        "Gojal": { lat: 36.6000, lon: 74.8500 },
+        "Naran": { lat: 34.9093, lon: 73.6500 },
+        "Kaghan Valley": { lat: 34.9100, lon: 73.6500 }
+    };
+
+    async function getWeather(city) {
+        const apiCity = cityMap[city] || city;
+
+        try {
+            let response = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?q=${apiCity},PK&units=metric&appid=${WEATHER_API_KEY}`
+            );
+            let data = await response.json();
+
+            if (!data.main && coordFallback[city]) {
+                const { lat, lon } = coordFallback[city];
+                response = await fetch(
+                    `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`
+                );
+                data = await response.json();
+            }
+
+            if (!data.main) {
+                return { weather: "N/A", advice: "Unknown" };
+            }
+
+            const temp = data.main.temp;
+            const condition = data.weather[0].main;
+
+            let advice = " Good to Visit";
+            if (condition.includes("Rain")) advice = "⚠ Rain – Travel Carefully";
+            if (condition.includes("Snow")) advice = "❄ Snowfall – Avoid Roads";
+            if (temp < 0) advice = "🥶 Extreme Cold – Avoid Visit";
+            if (temp > 40) advice = "🔥 Extreme Heat – Avoid Visit";
+            return {
+                weather: `${condition}, ${temp.toFixed(1)}°C`,
+                advice
+            };
+        } catch {
+            return { weather: "Unavailable", advice: "Unknown" };
+        }
+    }
+
+    let tourismData = [];
+    let currentData = [];
+    let sortAscending = true;
+    let currentView = 'table'; // 'table' or 'card'
+
+    const searchInput = document.getElementById("searchInput");
+    const provinceFilter = document.getElementById("provinceFilter");
+    const seasonFilter = document.getElementById("seasonFilter");
+    const tableBody = document.getElementById("tableBody");
+    const cardView = document.getElementById("cardView");
+    const tableViewBtn = document.getElementById("tableViewBtn");
+    const cardViewBtn = document.getElementById("cardViewBtn");
+    const tableElement = document.querySelector("table");
+
+    // View switcher logic
+    tableViewBtn.addEventListener('click', () => {
+        if (currentView !== 'table') {
+            currentView = 'table';
+            tableViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+            tableElement.style.display = '';
+            cardView.style.display = 'none';
+            render();
+        }
+    });
+
+    cardViewBtn.addEventListener('click', () => {
+        if (currentView !== 'card') {
+            currentView = 'card';
+            cardViewBtn.classList.add('active');
+            tableViewBtn.classList.remove('active');
+            tableElement.style.display = 'none';
+            cardView.style.display = 'grid';
+            render();
+        }
+    });
+
+    function removeDuplicates(data) {
+        const seen = new Set();
+
+        return data.filter(item => {
+            const key = `${item.place}-${item.city}-${item.province}-${item.category}-${item.season}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    // ✅ LOAD CSV FILE
+    fetch("places_dataset.csv")
+        .then(res => {
+            if (!res.ok) throw new Error("CSV not found");
+            return res.text();
+        })
+        .then(csvText => {
+            tourismData = removeDuplicates(parseCSV(csvText));
+            currentData = [...tourismData];
+            populateFilters(tourismData);
+            render();
+        })
+        .catch(err => {
+            if (currentView === 'table') {
+                tableBody.innerHTML = `<tr><td colspan="8">❌ Failed to load CSV file</td></tr>`;
+            } else {
+                cardView.innerHTML = `<p>❌ Failed to load CSV file</p>`;
+            }
+            console.error(err);
+        });
+
+    function parseCSV(csv) {
+      const lines = csv.replace(/\r/g, "").trim().split("\n");
+
+      return lines.slice(1).map(line => {
+        const v = line.split(",").map(x => x.trim());
+
+        return {
+          place: (v[0] || "").trim(),
+          city: (v[1] || "").trim(),
+          province: (v[2] || "").trim(),
+          category: (v[3] || "").trim(),
+          season: (v[4] || "").trim(),
+          rating: parseFloat(v[5]) || 0
+        };
+      });
+    }
+
+    function render() {
+        if (currentView === 'table') {
+            renderTable(currentData);
+        } else {
+            renderCardView(currentData);
+        }
+    }
+
+    async function renderTable(data) {
+        tableBody.innerHTML = "";
+        if (data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="8">No results found</td></tr>`;
+            return;
+        }
+
+        for (const item of data) {
+            const weatherData = await getWeather(item.city);
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${item.place}</td>
+                <td>${item.city}</td>
+                <td>${item.province}</td>
+                <td>${item.category}</td>
+                <td>${item.season}</td>
+                <td class="rating">${item.rating}</td>
+                <td>${weatherData.weather}</td>
+                <td>${weatherData.advice}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+    }
+
+    async function renderCardView(data) {
+        cardView.innerHTML = "";
+        if (data.length === 0) {
+            cardView.innerHTML = `<p>No results found</p>`;
+            return;
+        }
+
+        for (const item of data) {
+            const weatherData = await getWeather(item.city);
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+                <h3>${item.place}</h3>
+                <p><strong>City:</strong> ${item.city}</p>
+                <p><strong>Province:</strong> ${item.province}</p>
+                <p><strong>Category:</strong> ${item.category}</p>
+                <p><strong>Best Season:</strong> ${item.season}</p>
+                <p class="rating"><strong>Rating:</strong> ${item.rating}</p>
+                <p><strong>Weather:</strong> ${weatherData.weather}</p>
+                <p><strong>Advice:</strong> ${weatherData.advice}</p>
+            `;
+            cardView.appendChild(card);
+        }
+    }
+
+    function populateFilters(data) {
+        provinceFilter.innerHTML = `<option value="">All Provinces</option>`;
+        seasonFilter.innerHTML = `<option value="">All Seasons</option>`;
+
+        [...new Set(data.map(d => d.province))]
+            .forEach(p => provinceFilter.innerHTML += `<option>${p}</option>`);
+
+        [...new Set(data.map(d => d.season))]
+            .forEach(s => seasonFilter.innerHTML += `<option>${s}</option>`);
+    }
+
+    function filterAndRender() {
+        const search = searchInput.value.trim().toLowerCase();
+        const province = provinceFilter.value;
+        const season = seasonFilter.value;
+
+        currentData = tourismData.filter(item => {
+          const searchableText = `
+            ${item.place}
+            ${item.city}
+            ${item.province}
+            ${item.category}
+            ${item.season}
+          `.toLowerCase();
+
+          return (
+            searchableText.includes(search) &&
+            (province === "" || item.province === province) &&
+            (season === "" || item.season === season)
+          );
+        });
+
+        render();
+    }
+
+    window.sortByRating = () => {
+        sortAscending = !sortAscending;
+        currentData.sort((a, b) =>
+            sortAscending ? a.rating - b.rating : b.rating - a.rating
+        );
+        render();
+    };
+
+    searchInput.addEventListener("input", filterAndRender);
+    provinceFilter.addEventListener("change", filterAndRender);
+    seasonFilter.addEventListener("change", filterAndRender);
+});
+</script>
+<!-- Groq LLM Chat Widget -->
+<button id="chatButton">
+  <i class="fas fa-comment"></i>
+</button>
+
+<div id="chatPopup">
+  <div id="chatHeader">
+    <div class="title">
+      <i class="fas fa-robot"></i>
+      <span>Tourism AI Assistant</span>
+    </div>
+    <div class="controls">
+      <button id="minimizeButton"><i class="fas fa-minus"></i></button>
+      <button id="closeButton"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+  <div id="chatBody">
+    <div class="welcome-message">
+      <i class="fas fa-robot fa-2x" style="color: #6574bd; margin-bottom: 10px;"></i>
+      <p>Hello! I'm your Tourism AI assistant. How can I help you today?</p>
+    </div>
+  </div>
+  <div id="chatInputArea">
+    <input type="text" id="userInput" placeholder="Type your message...">
+    <button id="sendButton">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+</div>
+
+<style>
+  /* Chat button */
+  #chatButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #000000, #6a3ba2);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #chatButton:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Chat popup container */
+  #chatPopup {
+    display: none;
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 350px;
+    height: 450px;
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    overflow: hidden;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  #chatPopup.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Header */
+  #chatHeader {
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    color: white;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #chatHeader .title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #chatHeader .title i {
+    font-size: 20px;
+  }
+
+  #chatHeader .controls {
+    display: flex;
+    gap: 10px;
+  }
+
+  #chatHeader .controls button {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  /* Chat body */
+  #chatBody {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f5f7fb;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .message {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 18px;
+    position: relative;
+    line-height: 1.4;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .user-message {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    color: white;
+    border-bottom-right-radius: 5px;
+  }
+
+  .bot-message {
+    align-self: flex-start;
+    background-color: white;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    border-bottom-left-radius: 5px;
+  }
+
+  /* Text formatting improvements */
+  .message strong {
+    font-weight: 600;
+  }
+  
+  .message u {
+    text-decoration: underline;
+  }
+  
+  .message ul {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  
+  .message li {
+    margin-bottom: 5px;
+    position: relative;
+  }
+  
+  .message li:before {
+    content: "•";
+    position: absolute;
+    left: -15px;
+    color: #6e8efb;
+  }
+  
+  .message code {
+    background-color: #f5f5f5;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 13px;
+  }
+
+  .typing-indicator {
+    display: none;
+    align-self: flex-start;
+    background-color: white;
+    padding: 10px 15px;
+    border-radius: 18px;
+    border-bottom-left-radius: 5px;
+  }
+
+  .typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: #a777e3;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 2px;
+    opacity: 0.6;
+    animation: bounce 1.3s infinite ease-in-out;
+  }
+
+  .typing-indicator span:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .typing-indicator span:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .typing-indicator span:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-5px); }
+  }
+
+  /* Input area */
+  #chatInputArea {
+    display: flex;
+    padding: 15px;
+    background-color: white;
+    border-top: 1px solid #e0e0e0;
+    gap: 10px;
+  }
+
+  #userInput {
+    flex: 1;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    padding: 10px 15px;
+    outline: none;
+    transition: border-color 0.3s;
+    font-size: 14px;
+  }
+
+  #userInput:focus {
+    border-color: #a777e3;
+  }
+
+  #sendButton {
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+
+  #sendButton:hover {
+    transform: scale(1.05);
+  }
+
+  /* Scrollbar styling */
+  #chatBody::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  #chatBody::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  #chatBody::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 6px;
+  }
+
+  /* Welcome message */
+  .welcome-message {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+  }
+  
+  .welcome-message p {
+    font-size: 14px;
+    margin-top: 10px;
+  }
+
+  /* Responsive design */
+  @media (max-width: 480px) {
+    #chatPopup {
+      width: 90%;
+      right: 5%;
+      bottom: 80px;
+      height: 70%;
+    }
+    
+    .message {
+      font-size: 13px;
+      padding: 8px 12px;
+    }
+  }
+</style>
+
+<script>
+  // Wait for the DOM to be fully loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    const chatButton = document.getElementById('chatButton');
+    const chatPopup = document.getElementById('chatPopup');
+    const sendButton = document.getElementById('sendButton');
+    const userInput = document.getElementById('userInput');
+    const chatBody = document.getElementById('chatBody');
+    const closeButton = document.getElementById('closeButton');
+    const minimizeButton = document.getElementById('minimizeButton');
+
+    // Create typing indicator
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'typing-indicator';
+    typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+    
+    // Show welcome message initially
+    let firstInteraction = true;
+
+    // Toggle chat popup with animation
+    chatButton.addEventListener('click', () => {
+      if (chatPopup.classList.contains('show')) {
+        chatPopup.classList.remove('show');
+        setTimeout(() => {
+          chatPopup.style.display = 'none';
+        }, 300);
+      } else {
+        chatPopup.style.display = 'flex';
+        setTimeout(() => {
+          chatPopup.classList.add('show');
+          userInput.focus();
+        }, 10);
+      }
+    });
+
+    // Close button
+    closeButton.addEventListener('click', () => {
+      chatPopup.classList.remove('show');
+      setTimeout(() => {
+        chatPopup.style.display = 'none';
+      }, 300);
+    });
+
+    // Minimize button
+    minimizeButton.addEventListener('click', () => {
+      chatPopup.classList.remove('show');
+      setTimeout(() => {
+        chatPopup.style.display = 'none';
+      }, 300);
+    });
+
+    // Send message function
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      // Clear welcome message on first interaction
+      if (firstInteraction) {
+        chatBody.innerHTML = '';
+        firstInteraction = false;
+      }
+
+      // Show user's message
+      const userMsgDiv = document.createElement('div');
+      userMsgDiv.className = 'message user-message';
+      userMsgDiv.innerText = message;
+      chatBody.appendChild(userMsgDiv);
+
+      userInput.value = '';
+      chatBody.scrollTop = chatBody.scrollHeight;
+
+      // Show typing indicator
+      chatBody.appendChild(typingIndicator);
+      typingIndicator.style.display = 'flex';
+      chatBody.scrollTop = chatBody.scrollHeight;
+
+      try {
+        // Replace with your actual API endpoint
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+
+        const data = await res.json();
+
+        // Remove typing indicator
+        typingIndicator.style.display = 'none';
+
+        // Show LLM response with formatting
+        const botMsgDiv = document.createElement('div');
+        botMsgDiv.className = 'message bot-message';
+        
+        // Apply simple formatting to the response
+        let formattedResponse = data.response
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+          .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
+          .replace(/_(.*?)_/g, '<u>$1</u>'); // Underlined text
+        
+        // Handle bullet points (both * and -)
+        formattedResponse = formattedResponse
+          .replace(/^\s*[\*\-]\s+(.+)$/gm, '<li>$1</li>') // List items
+          .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>'); // Wrap in ul
+        
+        botMsgDiv.innerHTML = formattedResponse;
+        chatBody.appendChild(botMsgDiv);
+
+        chatBody.scrollTop = chatBody.scrollHeight;
+      } catch (err) {
+        // Remove typing indicator
+        typingIndicator.style.display = 'none';
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message bot-message';
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Sorry, I'm having trouble connecting right now. Please try again later.`;
+        chatBody.appendChild(errorDiv);
+        
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+    }
+
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  });
+</script>
+<!-- End Groq LLM Chat Widget -->
+</body>
+</html>
