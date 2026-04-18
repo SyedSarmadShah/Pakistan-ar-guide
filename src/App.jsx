@@ -5,6 +5,7 @@ import ARGuide from './components/ARGuide';
 import Recommendations from './components/Recommendations';
 import Chatbot from './components/Chatbot';
 import Favorites from './components/Favorites';
+import Checkout from './components/Checkout';
 import Login from './components/Login';
 import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,6 +28,7 @@ const App = () => {
             <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -276,6 +276,13 @@ const Recommendations = () => {
               </div>
             </div>
           )}
+
+          <button
+            onClick={() => navigate('/checkout')}
+            className={`mt-4 w-full py-2.5 rounded-lg font-semibold transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+          >
+            Proceed to Checkout
+          </button>
         </div>
       </div>
     );

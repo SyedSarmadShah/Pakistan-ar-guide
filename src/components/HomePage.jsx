@@ -67,6 +67,9 @@ const HomePage = () => {
             <Link to="/chat" className={`${isDark ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-700'} text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105`}>
               💬 Chat with AI
             </Link>
+            <Link to="/checkout" className={`${isDark ? 'bg-amber-700 hover:bg-amber-600' : 'bg-amber-600 hover:bg-amber-700'} text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105`}>
+              💳 Checkout
+            </Link>
           </div>
         </div>
 

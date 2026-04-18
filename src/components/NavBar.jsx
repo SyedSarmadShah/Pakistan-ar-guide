@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Moon, Sun, Heart, LogOut } from 'lucide-react';
+import { Menu, X, Moon, Sun, Heart, LogOut, CreditCard } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +29,7 @@ const NavBar = () => {
     { label: 'Home', path: '/' },
     { label: 'AR Guide', path: '/ar' },
     { label: 'Recommendations', path: '/recommendations' },
+    { label: 'Checkout', path: '/checkout', icon: CreditCard },
     { label: 'Favorites', path: '/favorites', icon: Heart },
     { label: 'Chat', path: '/chat' },
   ];
