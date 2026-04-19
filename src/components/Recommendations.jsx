@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Search, Filter, MapPin, Star, Cloud, AlertTriangle, Heart, ChevronDown } from 'lucide-react';
+import { Search, Filter, MapPin, Star, Cloud, AlertTriangle, Heart, ChevronDown, LocateFixed } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GridSkeleton } from './LoadingSkeleton';
 import { useDarkMode } from '../context/DarkModeContext';
 import NavBar from './NavBar';
+import { getUserProfile, updateUserProfile } from '../utils/userProfile';
+import { trackClick, trackFavorite, trackSearch } from '../utils/tracking';
+import { rankPlaces } from '../utils/recommendationEngine';
+import { getCurrentSeason, getUserLocation, mapWeatherToType } from '../utils/context';
+import { getTrendingScore } from '../utils/trending';
 
 const Recommendations = () => {
   const { isDark } = useDarkMode();
@@ -17,13 +22,16 @@ const Recommendations = () => {
   const [ratingFilter, setRatingFilter] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('grid');
   const [provinces, setProvinces] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [categories, setCategories] = useState([]);
   const [weatherCache, setWeatherCache] = useState({});
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState([]);
+  const [weatherType, setWeatherType] = useState('normal');
+  const [contextCity, setContextCity] = useState('Islamabad');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('Locating...');
   
   const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY || '5989bfd5387805e4603d064014e6032f';
 
@@ -36,18 +44,69 @@ const Recommendations = () => {
     "Islamabad": "Islamabad", "Taxila": "Taxila", "Murree": "Murree"
   };
 
+  const cityCoordinates = {
+    Lahore: { lat: 31.5204, lon: 74.3587 },
+    Islamabad: { lat: 33.6844, lon: 73.0479 },
+    Karachi: { lat: 24.8607, lon: 67.0011 },
+    Skardu: { lat: 35.2971, lon: 75.6337 },
+    Karimabad: { lat: 36.3167, lon: 74.65 },
+    Hunza: { lat: 36.3167, lon: 74.65 },
+    Gilgit: { lat: 35.9208, lon: 74.3144 },
+    Naltar: { lat: 36.1333, lon: 74.1833 },
+    Nagar: { lat: 36.32, lon: 74.68 },
+    Gojal: { lat: 36.85, lon: 74.85 },
+    Mingora: { lat: 34.7717, lon: 72.36 },
+    Swat: { lat: 35.2227, lon: 72.4258 },
+    Naran: { lat: 34.9083, lon: 73.6497 },
+    Kalam: { lat: 35.4902, lon: 72.5804 },
+    Chitral: { lat: 35.851, lon: 71.7864 },
+    Larkana: { lat: 27.559, lon: 68.212 },
+    Thatta: { lat: 24.7475, lon: 67.9235 },
+    Ziarat: { lat: 30.3824, lon: 67.7256 },
+    Taxila: { lat: 33.745, lon: 72.7875 },
+    Murree: { lat: 33.9062, lon: 73.3903 },
+    Jhelum: { lat: 32.9425, lon: 73.7257 },
+    Chakwal: { lat: 32.93, lon: 72.85 },
+    Sheikhupura: { lat: 31.7167, lon: 73.9833 },
+    Bahawalpur: { lat: 29.3956, lon: 71.6836 },
+    Peshawar: { lat: 34.0151, lon: 71.5249 },
+    Mardan: { lat: 34.1989, lon: 72.0401 },
+    'Kaghan Valley': { lat: 34.74, lon: 73.53 },
+    Diamer: { lat: 35.3367, lon: 73.7322 },
+    Haripur: { lat: 33.9946, lon: 72.9106 },
+    Abbottabad: { lat: 34.1688, lon: 73.2215 },
+    Rawalakot: { lat: 33.8578, lon: 73.7604 },
+    Khushab: { lat: 32.2967, lon: 72.3525 },
+  };
+
   useEffect(() => {
     loadTourismData();
     loadFavorites();
+    initUserContext();
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [searchQuery, provinceFilter, seasonFilter, categoryFilter, ratingFilter, showFavoritesOnly, tourismData, favorites]);
+  }, [searchQuery, provinceFilter, seasonFilter, categoryFilter, ratingFilter, showFavoritesOnly, tourismData, favorites, weatherType, userLocation]);
+
+  useEffect(() => {
+    detectContextWeather();
+  }, [contextCity, userLocation]);
 
   const loadFavorites = () => {
     const saved = localStorage.getItem('favorites');
-    setFavorites(saved ? JSON.parse(saved) : []);
+    const legacy = saved ? JSON.parse(saved) : [];
+    const profile = getUserProfile();
+
+    // Keep backward compatibility with old favorites format.
+    if (profile.favorites.length > 0 && legacy.length === 0) {
+      const fromProfile = profile.favorites.map((name) => ({ place: name }));
+      localStorage.setItem('favorites', JSON.stringify(fromProfile));
+      setFavorites(fromProfile);
+      return;
+    }
+
+    setFavorites(legacy);
   };
 
   const toggleFavorite = (place) => {
@@ -63,6 +122,12 @@ const Recommendations = () => {
     
     localStorage.setItem('favorites', JSON.stringify(favList));
     setFavorites(favList);
+    if (!exists) {
+      trackFavorite(place);
+    }
+
+    const profile = getUserProfile();
+    updateUserProfile({ favorites: favList.map((f) => f.place || f.name).filter(Boolean), likedCategories: profile.likedCategories });
     window.dispatchEvent(new Event('storage'));
   };
 
@@ -139,8 +204,45 @@ const Recommendations = () => {
     if (showFavoritesOnly) {
       filtered = filtered.filter(item => isFavorite(item.place));
     }
-    
-    setFilteredData(filtered);
+
+    const ranked = rankPlaces(filtered, getUserProfile(), {
+      currentSeason: getCurrentSeason(),
+      weatherType,
+      userLocation,
+      cityCoordinates,
+    });
+
+    setFilteredData(ranked);
+  };
+
+  const initUserContext = async () => {
+    const coords = await getUserLocation();
+    if (coords) {
+      setUserLocation(coords);
+      setLocationStatus('Live location enabled');
+    } else {
+      setLocationStatus('Using selected city fallback');
+      setUserLocation(cityCoordinates[contextCity] || null);
+    }
+  };
+
+  const detectContextWeather = async () => {
+    const fallbackCity = contextCity || 'Islamabad';
+
+    try {
+      const response = userLocation
+        ? await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${userLocation.lat}&lon=${userLocation.lon}&units=metric&appid=${WEATHER_API_KEY}`
+          )
+        : await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?q=${fallbackCity},PK&units=metric&appid=${WEATHER_API_KEY}`
+          );
+      const data = await response.json();
+      const main = data?.weather?.[0]?.main || '';
+      setWeatherType(mapWeatherToType(main));
+    } catch (error) {
+      setWeatherType('normal');
+    }
   };
 
   const clearFilters = () => {
@@ -251,6 +353,29 @@ const Recommendations = () => {
               <span className="font-bold text-sm">{place.rating}</span>
             </div>
           </div>
+
+          <div className="mb-3 flex items-center justify-between">
+            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isDark ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+              Relevance {place.score?.toFixed ? place.score.toFixed(1) : place.score || 0}
+            </span>
+            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Trend {getTrendingScore(place.place)}
+            </span>
+          </div>
+
+          {typeof place.distanceKm === 'number' && (
+            <div className="mb-3">
+              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isDark ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-100 text-cyan-700'}`}>
+                Nearby {place.distanceKm} km
+              </span>
+            </div>
+          )}
+
+          {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
+            <div className={`mb-3 text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Why recommended: {place.scoreBreakdown.slice(0, 3).join(' • ')}
+            </div>
+          )}
           
           <div className="space-y-2 mb-4">
             <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -278,7 +403,10 @@ const Recommendations = () => {
           )}
 
           <button
-            onClick={() => navigate('/checkout')}
+            onClick={() => {
+              trackClick(place);
+              navigate('/checkout');
+            }}
             className={`mt-4 w-full py-2.5 rounded-lg font-semibold transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
           >
             Proceed to Checkout
@@ -309,7 +437,12 @@ const Recommendations = () => {
                   type="text"
                   placeholder="Search places, cities..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (e.target.value.trim().length >= 3) {
+                      trackSearch(e.target.value);
+                    }
+                  }}
                   className={`w-full pl-10 pr-4 py-2 border ${isDark ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' : 'border-gray-300 bg-white'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
                 />
               </div>
@@ -336,6 +469,30 @@ const Recommendations = () => {
                   Clear All
                 </button>
               )}
+            </div>
+
+            <div className={`grid md:grid-cols-2 gap-3 ${showFilters ? 'mt-2' : 'mt-0'}`}>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isDark ? 'border-gray-600 bg-gray-700 text-gray-200' : 'border-gray-300 bg-white text-gray-700'}`}>
+                <LocateFixed className="w-4 h-4" />
+                <span className="text-sm">{locationStatus}</span>
+              </div>
+
+              <select
+                value={contextCity}
+                onChange={(e) => {
+                  const nextCity = e.target.value;
+                  setContextCity(nextCity);
+                  // Manual city takes over when user location is unavailable.
+                  if (!userLocation) {
+                    setUserLocation(cityCoordinates[nextCity] || null);
+                  }
+                }}
+                className={`px-4 py-2 border ${isDark ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
+              >
+                {Object.keys(cityCoordinates).sort().map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
             </div>
 
             {/* Advanced Filters Panel */}
@@ -417,6 +574,10 @@ const Recommendations = () => {
         <div className={`mb-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
           Found <span className={`font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>{filteredData.length}</span> destinations
         </div>
+
+        <div className={`mb-6 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          Smart context: season <strong>{getCurrentSeason()}</strong> | weather mode <strong>{weatherType}</strong>
+        </div>
         
         {loading ? (
           <GridSkeleton count={6} />
@@ -427,14 +588,56 @@ const Recommendations = () => {
             <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mt-2`}>Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredData.map((place, idx) => (
-              <PlaceCard key={idx} place={place} />
-            ))}
+          <div className="space-y-10">
+            <RecommendationSection
+              title="Recommended for You"
+              items={filteredData.slice(0, 6)}
+              PlaceCard={PlaceCard}
+            />
+
+            <RecommendationSection
+              title="Trending Now"
+              items={[...filteredData]
+                .sort((a, b) => getTrendingScore(b.place) - getTrendingScore(a.place))
+                .slice(0, 6)}
+              PlaceCard={PlaceCard}
+            />
+
+            <RecommendationSection
+              title="Best This Season"
+              items={filteredData
+                .filter((p) => String(p.season || '').toLowerCase().includes(getCurrentSeason().toLowerCase()))
+                .slice(0, 6)}
+              PlaceCard={PlaceCard}
+            />
+
+            <RecommendationSection
+              title="Nearby You"
+              items={[...filteredData]
+                .filter((p) => typeof p.distanceKm === 'number')
+                .sort((a, b) => a.distanceKm - b.distanceKm)
+                .slice(0, 6)}
+              PlaceCard={PlaceCard}
+            />
           </div>
         )}
       </div>
     </div>
+  );
+};
+
+const RecommendationSection = ({ title, items, PlaceCard }) => {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="text-xl font-bold mb-4">{title}</h2>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {items.map((place) => (
+          <PlaceCard key={`${title}-${place.place}`} place={place} />
+        ))}
+      </div>
+    </section>
   );
 };
 
