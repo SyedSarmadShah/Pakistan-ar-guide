@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowRight, Check } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -76,197 +76,139 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4 py-12">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl"></div>
-      </div>
+    <div className="relative min-h-screen overflow-hidden">
+      <div
+        className="absolute inset-0 bg-center bg-cover"
+        style={{ backgroundImage: "url('/capital.jpg')" }}
+      />
+      <div className="absolute inset-0 bg-black/35" />
 
-      {/* Register Card */}
-      <div className="relative w-full max-w-md z-10">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-block mb-4 p-4 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Join Us</h1>
-          <p className="text-gray-400">Start exploring Pakistan's heritage</p>
-        </div>
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8 lg:px-12">
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="order-2 lg:order-1 w-full max-w-sm mx-auto lg:mx-0">
+            <div className="rounded-3xl border border-white/35 bg-white/10 backdrop-blur-xl shadow-2xl p-6 sm:p-8">
+              <h1 className="text-white text-2xl font-bold mb-6">Create Your Account</h1>
 
-        {/* Form Card */}
-        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700/50 rounded-2xl p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name Field */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-4 top-3.5 w-5 h-5 text-blue-400" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                />
-              </div>
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-3.5 w-5 h-5 text-blue-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-3.5 w-5 h-5 text-blue-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-12 pr-12 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-3.5 text-gray-400 hover:text-blue-400 transition"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Min. 6 characters</p>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-3.5 w-5 h-5 text-blue-400" />
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-12 pr-12 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-3.5 text-gray-400 hover:text-blue-400 transition"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
-                <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-red-400 text-sm">!</span>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-white/90 mb-1.5">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="John Doe"
+                      className="w-full rounded-md border border-white/35 bg-white/15 text-white placeholder-white/70 pl-10 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-white/50"
+                    />
+                  </div>
                 </div>
-                <p className="text-red-300 text-sm">{error}</p>
+
+                <div>
+                  <label className="block text-sm text-white/90 mb-1.5">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full rounded-md border border-white/35 bg-white/15 text-white placeholder-white/70 pl-10 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-white/50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-white/90 mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Minimum 6 characters"
+                      className="w-full rounded-md border border-white/35 bg-white/15 text-white placeholder-white/70 pl-10 pr-10 py-2.5 outline-none focus:ring-2 focus:ring-white/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-white/90 mb-1.5">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter your password"
+                      className="w-full rounded-md border border-white/35 bg-white/15 text-white placeholder-white/70 pl-10 pr-10 py-2.5 outline-none focus:ring-2 focus:ring-white/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
+                      aria-label="Toggle confirm password visibility"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <label htmlFor="terms" className="flex items-start gap-2 text-xs text-white/85">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-white/60 bg-white/20"
+                  />
+                  I agree to the Terms and Privacy Policy.
+                </label>
+
+                {error && (
+                  <div className="rounded-md border border-red-300/70 bg-red-500/20 px-3 py-2 text-sm text-red-100">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full rounded-md bg-white text-gray-900 font-semibold py-2.5 hover:bg-gray-100 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Creating account...' : 'CREATE ACCOUNT'}
+                </button>
+              </form>
+
+              <div className="mt-3 flex justify-between text-xs">
+                <Link to="/login" className="text-white/85 hover:text-white underline underline-offset-2">
+                  Already have an account?
+                </Link>
+                <span className="text-white/80">Secure Signup</span>
               </div>
-            )}
-
-            {/* Terms & Conditions */}
-            <div className="flex items-start gap-3 p-3 bg-gray-700/20 border border-gray-600/30 rounded-lg">
-              <input
-                type="checkbox"
-                id="terms"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="w-5 h-5 rounded accent-emerald-500 mt-0.5 cursor-pointer"
-              />
-              <label htmlFor="terms" className="text-xs text-gray-300 cursor-pointer">
-                I agree to the <span className="text-emerald-400 hover:underline">Terms & Conditions</span> and <span className="text-emerald-400 hover:underline">Privacy Policy</span>
-              </label>
-            </div>
-
-            {/* Register Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Creating Account...
-                </>
-              ) : (
-                <>
-                  Create Account <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-800/50 text-gray-400">Already have an account?</span>
             </div>
           </div>
 
-          {/* Login Link */}
-          <Link
-            to="/login"
-            className="w-full border-2 border-blue-500/30 hover:border-blue-500/60 text-blue-400 hover:text-blue-300 font-semibold py-3 rounded-lg transition text-center"
-          >
-            Sign In
-          </Link>
-        </div>
-
-        {/* Features */}
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <div className="p-3 bg-gray-800/30 border border-gray-700/30 rounded-lg">
-            <Check className="w-4 h-4 text-emerald-400 mb-1" />
-            <p className="text-xs text-gray-300">AR Monument Guide</p>
-          </div>
-          <div className="p-3 bg-gray-800/30 border border-gray-700/30 rounded-lg">
-            <Check className="w-4 h-4 text-emerald-400 mb-1" />
-            <p className="text-xs text-gray-300">AI Chat Assistant</p>
-          </div>
-          <div className="p-3 bg-gray-800/30 border border-gray-700/30 rounded-lg">
-            <Check className="w-4 h-4 text-emerald-400 mb-1" />
-            <p className="text-xs text-gray-300">Save Favorites</p>
-          </div>
-          <div className="p-3 bg-gray-800/30 border border-gray-700/30 rounded-lg">
-            <Check className="w-4 h-4 text-emerald-400 mb-1" />
-            <p className="text-xs text-gray-300">Weather Updates</p>
+          <div className="order-1 lg:order-2 text-white text-center lg:text-left max-w-xl ml-auto mr-auto lg:mr-0 lg:ml-0">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08]">
+              THE GOAL OF LIFE IS
+              <br />
+              LIVING IN AGREEMENT
+              <br />
+              WITH NATURE.
+            </h2>
+            <div className="mt-4 h-1 w-32 bg-white/90 mx-auto lg:mx-0" />
+            <p className="mt-4 text-sm sm:text-base text-white/90">
+              Begin your journey through Pakistan's living heritage.
+            </p>
           </div>
         </div>
       </div>
