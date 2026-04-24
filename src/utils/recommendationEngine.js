@@ -23,6 +23,10 @@ const haversineKm = (a, b) => {
 };
 
 const resolvePlaceLocation = (place, context) => {
+  if (typeof place.lat === 'number' && typeof place.lon === 'number') {
+    return { lat: place.lat, lon: place.lon };
+  }
+
   const city = place.city || '';
   if (!city || !context?.cityCoordinates) return null;
   return context.cityCoordinates[city] || null;

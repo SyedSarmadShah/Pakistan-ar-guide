@@ -20,11 +20,13 @@ const Recommendations = () => {
   const [seasonFilter, setSeasonFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [ratingFilter, setRatingFilter] = useState('');
+  const [budgetFilter, setBudgetFilter] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [provinces, setProvinces] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [budgets, setBudgets] = useState([]);
   const [weatherCache, setWeatherCache] = useState({});
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState([]);
@@ -87,7 +89,7 @@ const Recommendations = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [searchQuery, provinceFilter, seasonFilter, categoryFilter, ratingFilter, showFavoritesOnly, tourismData, favorites, weatherType, userLocation]);
+  }, [searchQuery, provinceFilter, seasonFilter, categoryFilter, ratingFilter, budgetFilter, showFavoritesOnly, tourismData, favorites, weatherType, userLocation]);
 
   useEffect(() => {
     detectContextWeather();
@@ -147,9 +149,11 @@ const Recommendations = () => {
       const uniqueProvinces = [...new Set(parsed.map(d => d.province))];
       const uniqueSeasons = [...new Set(parsed.map(d => d.season))];
       const uniqueCategories = [...new Set(parsed.map(d => d.category))];
+      const uniqueBudgets = [...new Set(parsed.map(d => d.budgetLevel).filter(Boolean))];
       setProvinces(uniqueProvinces);
       setSeasons(uniqueSeasons);
       setCategories(uniqueCategories);
+      setBudgets(uniqueBudgets);
     } catch (error) {
       console.error('Failed to load tourism data:', error);
     } finally {
@@ -158,16 +162,63 @@ const Recommendations = () => {
   };
 
   const parseCSV = (csv) => {
+    const parseLine = (line) => {
+      const values = [];
+      let current = '';
+      let insideQuotes = false;
+
+      for (let i = 0; i < line.length; i += 1) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+
+        if (char === '"' && insideQuotes && nextChar === '"') {
+          current += '"';
+          i += 1;
+          continue;
+        }
+
+        if (char === '"') {
+          insideQuotes = !insideQuotes;
+          continue;
+        }
+
+        if (char === ',' && !insideQuotes) {
+          values.push(current.trim());
+          current = '';
+          continue;
+        }
+
+        current += char;
+      }
+
+      values.push(current.trim());
+      return values;
+    };
+
     const lines = csv.replace(/\r/g, '').trim().split('\n');
-    return lines.slice(1).map(line => {
-      const v = line.split(',').map(x => x.trim());
+    const headers = parseLine(lines[0]).map((header) => header.replace(/^"|"$/g, '').trim());
+
+    return lines.slice(1).map((line) => {
+      const row = parseLine(line);
+      const entry = {};
+
+      headers.forEach((header, index) => {
+        entry[header] = (row[index] || '').replace(/^"|"$/g, '').trim();
+      });
+
       return {
-        place: v[0] || '',
-        city: v[1] || '',
-        province: v[2] || '',
-        category: v[3] || '',
-        season: v[4] || '',
-        rating: parseFloat(v[5]) || 0
+        place: entry.place_name || entry.place || '',
+        city: entry.city || '',
+        province: entry.province || '',
+        category: entry.category || '',
+        season: entry.best_season || entry.season || '',
+        rating: parseFloat(entry.rating) || 0,
+        lat: entry.lat ? parseFloat(entry.lat) : null,
+        lon: entry.lon ? parseFloat(entry.lon) : null,
+        popularity: entry.popularity ? parseInt(entry.popularity, 10) : 0,
+        weatherTag: entry.weather_tag || entry.weatherTag || '',
+        budgetLevel: entry.budget_level || entry.budgetLevel || '',
+        tripDays: entry.trip_days || entry.tripDays || '',
       };
     });
   };
@@ -194,6 +245,10 @@ const Recommendations = () => {
     
     if (categoryFilter) {
       filtered = filtered.filter(item => item.category === categoryFilter);
+    }
+
+    if (budgetFilter) {
+      filtered = filtered.filter(item => item.budgetLevel === budgetFilter);
     }
     
     if (ratingFilter) {
@@ -251,6 +306,7 @@ const Recommendations = () => {
     setSeasonFilter('');
     setCategoryFilter('');
     setRatingFilter('');
+    setBudgetFilter('');
     setShowFavoritesOnly(false);
   };
 
@@ -324,6 +380,19 @@ const Recommendations = () => {
     }, [place.city]);
     
     const placeImage = images[place.place] || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop";
+    const [showDetails, setShowDetails] = useState(false);
+    
+    // Determine recommendation quality indicator
+    const getRatingStars = (score) => {
+      if (score >= 80) return '★★★★★';
+      if (score >= 70) return '★★★★';
+      if (score >= 60) return '★★★';
+      if (score >= 50) return '★★';
+      return '★';
+    };
+
+    // Only show "Popular" if trending high
+    const showPopularBadge = getTrendingScore(place.place) >= 3;
     
     return (
       <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden`}>
@@ -345,60 +414,76 @@ const Recommendations = () => {
           </button>
         </div>
         
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>{place.place}</h3>
-            <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full">
-              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <span className="font-bold text-sm">{place.rating}</span>
+        <div className="p-5">
+          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-2`}>{place.place}</h3>
+          
+          {/* Quick signals: Rating | Budget | Distance | Popular */}
+          <div className="flex flex-wrap gap-2 mb-3 items-center">
+            <div className={`text-xs font-semibold ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
+              ⭐ {place.rating}
             </div>
-          </div>
-
-          <div className="mb-3 flex items-center justify-between">
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isDark ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-              Relevance {place.score?.toFixed ? place.score.toFixed(1) : place.score || 0}
-            </span>
-            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Trend {getTrendingScore(place.place)}
-            </span>
-          </div>
-
-          {typeof place.distanceKm === 'number' && (
-            <div className="mb-3">
-              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isDark ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-100 text-cyan-700'}`}>
-                Nearby {place.distanceKm} km
+            {place.budgetLevel && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
+                {place.budgetLevel}
               </span>
-            </div>
-          )}
-
-          {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
-            <div className={`mb-3 text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Why recommended: {place.scoreBreakdown.slice(0, 3).join(' • ')}
-            </div>
-          )}
-          
-          <div className="space-y-2 mb-4">
-            <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              <MapPin className="w-4 h-4" />
-              <span>{place.city}, {place.province}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">{place.category}</span>
-            </div>
-            <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              <strong>Best:</strong> {place.season}
-            </div>
+            )}
+            {typeof place.distanceKm === 'number' && (
+              <span className={`text-xs font-semibold ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
+                📍 {place.distanceKm}km
+              </span>
+            )}
+            {showPopularBadge && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                🔥 Popular
+              </span>
+            )}
           </div>
           
-          {weather && (
-            <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-4 space-y-2`}>
-              <div className="flex items-center gap-2 text-sm">
-                <Cloud className="w-4 h-4 text-blue-500" />
-                <span className={`${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{weather.weather}</span>
+          {/* Compact essential info */}
+          <div className="space-y-1.5 mb-3">
+            <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <MapPin className="w-3.5 h-3.5" />
+              <span>{place.city}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold">{place.category}</span>
+              <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Best: {place.season}</span>
+            </div>
+            {place.tripDays && (
+              <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                ⏱️ {place.tripDays} days
               </div>
-              <div className={`text-sm font-medium ${isDark ? 'text-gray-200 bg-blue-900/30' : 'text-gray-700 bg-blue-50'} p-2 rounded`}>
+            )}
+          </div>
+
+          {/* Weather info collapsed under details toggle */}
+          {weather && (
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className={`w-full text-left text-xs p-2 rounded mb-3 transition ${
+                showDetails
+                  ? isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'
+                  : isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {showDetails ? '▼ Weather & Details' : '▶ Weather & Details'}
+            </button>
+          )}
+          
+          {showDetails && weather && (
+            <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-3 mb-3 text-xs space-y-2`}>
+              <div className="flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-blue-500" />
+                <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{weather.weather}</span>
+              </div>
+              <div className={`font-medium ${isDark ? 'text-gray-200 bg-blue-900/30' : 'text-gray-700 bg-blue-50'} p-2 rounded`}>
                 {weather.advice}
               </div>
+              {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
+                <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                  <strong>Why recommended:</strong><br/>{place.scoreBreakdown.slice(0, 2).join(' • ')}
+                </div>
+              )}
             </div>
           )}
 
@@ -407,9 +492,9 @@ const Recommendations = () => {
               trackClick(place);
               navigate('/checkout');
             }}
-            className={`mt-4 w-full py-2.5 rounded-lg font-semibold transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+            className={`w-full py-2.5 rounded-lg font-semibold text-sm transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
           >
-            Proceed to Checkout
+            View Details
           </button>
         </div>
       </div>
@@ -452,11 +537,11 @@ const Recommendations = () => {
                 className={`flex items-center gap-2 px-4 py-2 border ${isDark ? 'border-gray-600 bg-gray-700 text-white hover:bg-gray-600' : 'border-gray-300 bg-white hover:bg-gray-50'} rounded-lg transition`}
               >
                 <Filter className="w-5 h-5" />
-                Advanced Filters
+                {showFilters ? 'Hide' : 'Show'} Filters
                 <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                {(provinceFilter || seasonFilter || categoryFilter || ratingFilter || showFavoritesOnly) && (
-                  <span className="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    Active
+                {(provinceFilter || seasonFilter || categoryFilter || ratingFilter || budgetFilter || showFavoritesOnly) && (
+                  <span className="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">
+                    {[provinceFilter, seasonFilter, categoryFilter, ratingFilter, budgetFilter, showFavoritesOnly ? '1' : ''].filter(Boolean).length} active
                   </span>
                 )}
               </button>
@@ -471,7 +556,8 @@ const Recommendations = () => {
               )}
             </div>
 
-            <div className={`grid md:grid-cols-2 gap-3 ${showFilters ? 'mt-2' : 'mt-0'}`}>
+            {showFilters && (
+            <div className={`grid md:grid-cols-2 gap-3 mt-3 pt-3 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isDark ? 'border-gray-600 bg-gray-700 text-gray-200' : 'border-gray-300 bg-white text-gray-700'}`}>
                 <LocateFixed className="w-4 h-4" />
                 <span className="text-sm">{locationStatus}</span>
@@ -543,27 +629,38 @@ const Recommendations = () => {
                     <option value="3.5">3.5+ Stars</option>
                     <option value="3.0">3.0+ Stars</option>
                   </select>
-                </div>
 
-                <div className="mt-3 flex items-center gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showFavoritesOnly}
-                      onChange={(e) => setShowFavoritesOnly(e.target.checked)}
-                      className="w-4 h-4 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-500"
-                    />
-                    <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>
-                      Show Favorites Only
-                    </span>
-                    {showFavoritesOnly && favorites.length > 0 && (
-                      <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        ({favorites.length} saved)
-                      </span>
-                    )}
-                  </label>
-                </div>
+                  <select
+                    value={budgetFilter}
+                    onChange={(e) => setBudgetFilter(e.target.value)}
+                    className={`px-4 py-2 border ${isDark ? 'border-gray-600 bg-gray-600 text-white' : 'border-gray-300 bg-white'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
+                  >
+                    <option value="">All Budgets</option>
+                    {budgets.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
               </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showFavoritesOnly}
+                    onChange={(e) => setShowFavoritesOnly(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <span className={`${isDark ? 'text-white' : 'text-gray-700'} font-medium`}>
+                    Show Favorites Only
+                  </span>
+                  {showFavoritesOnly && favorites.length > 0 && (
+                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      ({favorites.length} saved)
+                    </span>
+                  )}
+                </label>
+              </div>
+            </div>
             )}
           </div>
         </div>

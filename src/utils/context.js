@@ -28,6 +28,7 @@ export const getUserLocation = () => {
 };
 
 export const mapWeatherToType = (weatherMain = '') => {
+  if (weatherMain.includes('Snow')) return 'snowy';
   if (weatherMain.includes('Rain')) return 'rainy';
   if (weatherMain.includes('Cloud')) return 'cloudy';
   if (weatherMain.includes('Clear')) return 'sunny';
