@@ -557,6 +557,7 @@ const Recommendations = () => {
             </div>
 
             {showFilters && (
+            <>
             <div className={`grid md:grid-cols-2 gap-3 mt-3 pt-3 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isDark ? 'border-gray-600 bg-gray-700 text-gray-200' : 'border-gray-300 bg-white text-gray-700'}`}>
                 <LocateFixed className="w-4 h-4" />
@@ -582,7 +583,6 @@ const Recommendations = () => {
             </div>
 
             {/* Advanced Filters Panel */}
-            {showFilters && (
               <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg border ${isDark ? 'border-gray-600' : 'border-gray-200'}`}>
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
                   <select
@@ -661,6 +661,7 @@ const Recommendations = () => {
                 </label>
               </div>
             </div>
+            </>
             )}
           </div>
         </div>

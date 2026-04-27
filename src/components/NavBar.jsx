@@ -56,7 +56,7 @@ const NavBar = () => {
             onClick={() => handleNavClick('/')}
             className="cursor-pointer font-bold text-2xl text-emerald-600 flex items-center gap-2 hover:text-emerald-700 transition"
           >
-            🇵🇰 Pakistan AR
+            🇵🇰 Ghoomo Pakistan
           </div>
 
           {/* Desktop Navigation */}

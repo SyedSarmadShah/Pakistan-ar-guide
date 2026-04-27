@@ -22,6 +22,10 @@ const initialErrors = {
 const Checkout = () => {
   const navigate = useNavigate();
 
+  const goHome = () => {
+    navigate('/');
+  };
+
   const [currentMethod, setCurrentMethod] = useState('card');
   const [discountPct, setDiscountPct] = useState(0);
   const [promoInput, setPromoInput] = useState('');
@@ -212,6 +216,21 @@ const Checkout = () => {
           display: flex;
           align-items: center;
           gap: 12px;
+        }
+
+        .checkout-back-btn {
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          background: transparent;
+          color: #fff;
+          border-radius: 8px;
+          padding: 8px 12px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .checkout-back-btn:hover {
+          background: rgba(255, 255, 255, 0.12);
         }
 
         .checkout-logo {
@@ -510,6 +529,16 @@ const Checkout = () => {
         }
 
         @media (max-width: 720px) {
+          .checkout-header {
+            flex-wrap: wrap;
+            row-gap: 10px;
+          }
+
+          .checkout-secure {
+            width: 100%;
+            margin-left: 0;
+          }
+
           .method-tabs {
             grid-template-columns: 1fr 1fr;
           }
@@ -522,8 +551,11 @@ const Checkout = () => {
       `}</style>
 
       <header className="checkout-header">
+        <button type="button" className="checkout-back-btn" onClick={goHome}>
+          Back to Home
+        </button>
         <div className="checkout-logo">PK</div>
-        <div className="checkout-brand">Pakistan AR Guide</div>
+        <div className="checkout-brand">Ghoomo Pakistan</div>
         <div className="checkout-secure">SECURE CHECKOUT</div>
       </header>
 
@@ -711,7 +743,7 @@ const Checkout = () => {
             <div className={`panel ${currentMethod === 'bank' ? 'visible' : ''}`}>
               <div className="bank-info-box">
                 <div className="bank-row"><span>Bank Name</span><span>HBL Bank</span></div>
-                <div className="bank-row"><span>Account Title</span><span>Pakistan AR Guide Pvt</span></div>
+                <div className="bank-row"><span>Account Title</span><span>Ghoomo Pakistan Pvt</span></div>
                 <div className="bank-row"><span>Account No.</span><span>0123-4567890-001</span></div>
                 <div className="bank-row"><span>IBAN</span><span>PK36HABB0000123456789001</span></div>
               </div>
@@ -792,7 +824,7 @@ const Checkout = () => {
             <h2>Booking Confirmed</h2>
             <p>Your payment was processed successfully. A confirmation email has been sent.</p>
             <div className="success-ref">Booking Ref: {bookingRef}</div>
-            <button type="button" className="pay-btn" onClick={closeSuccess}>Back to Dashboard</button>
+            <button type="button" className="pay-btn" onClick={closeSuccess}>Back to Home</button>
           </div>
         </div>
       ) : null}
