@@ -1,105 +1,182 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, MessageCircle, MapPin, Sparkles, Navigation, Play, X } from 'lucide-react';
+import { ArrowRight, Camera, Compass, Info, MapPin, MessageCircle, Sparkles, Ticket } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import NavBar from './NavBar';
 
 const HomePage = () => {
-  const [activeVideo, setActiveVideo] = useState(null);
   const { isDark } = useDarkMode();
 
-  const places = [
+  const featuredPlaces = [
     {
-      name: "Badshahi Mosque",
-      image: "/images/badshahi-mosque.jpg",
-      description: "Iconic red sandstone mosque in Lahore"
+      name: 'Badshahi Mosque',
+      image: '/images/badshahi-mosque.jpg',
+      location: 'Lahore',
+      description: 'Mughal grandeur, red sandstone, and a skyline-defining courtyard.'
     },
     {
-      name: "Mohenjo-daro",
-      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Mohenjo-daro-2010.jpg/800px-Mohenjo-daro-2010.jpg",
-      description: "Ancient Indus Valley Civilization site"
+      name: 'Mohenjo-daro',
+      image: '/images/mohenjo-daro.jpg',
+      location: 'Sindh',
+      description: 'One of the world’s earliest urban settlements, still quietly powerful.'
     },
     {
-      name: "Taxila",
-      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Dharmarajika_stupa_02.jpg/800px-Dharmarajika_stupa_02.jpg",
-      description: "Historic Buddhist learning center"
+      name: 'Taxila',
+      image: '/images/taxila.jpg',
+      location: 'Punjab',
+      description: 'Ancient learning, sacred ruins, and layered Buddhist heritage.'
+    },
+    {
+      name: 'Hunza Valley',
+      image: 'https://images.unsplash.com/photo-1518076295597-9f1b6a2f6d57?auto=format&fit=crop&w=1200&q=80',
+      location: 'Gilgit-Baltistan',
+      description: 'Glacial water, terraced villages, and dramatic mountain walls.'
+    },
+    {
+      name: 'Skardu',
+      image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1200&q=80',
+      location: 'Baltistan',
+      description: 'A gateway to alpine lakes, deserts, and unforgettable road trips.'
     }
   ];
 
-  const videos = [
-    { id: 1, title: "Hunza Valley", thumbnail: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop", desc: "Mountains" },
-    { id: 2, title: "Thar Desert", thumbnail: "https://images.unsplash.com/photo-1509919243529-f2a5ad6bdfad?w=400&h=300&fit=crop", desc: "Deserts" },
-    { id: 3, title: "Arabian Sea", thumbnail: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop", desc: "Beaches" },
-    { id: 4, title: "Northern Forests", thumbnail: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop", desc: "Forests" }
+  const heroActions = [
+    { label: 'Top Tours', icon: Compass, to: '/recommendations' },
+    { label: 'Tickets', icon: Ticket, to: '/checkout' },
+    { label: 'Travel Info', icon: Info, to: '/recommendations' },
+    { label: 'Places to Go', icon: MapPin, onClick: true }
   ];
 
+  const sectionBg = isDark ? 'bg-slate-950 text-white' : 'bg-[#f3ede4] text-slate-900';
+  const panelBg = isDark ? 'bg-slate-900/85 border border-white/10' : 'bg-white/90 border border-white/60';
+  const quickButtonClass = isDark
+    ? 'bg-white/10 text-white hover:bg-white/15 border border-white/10'
+    : 'bg-white text-slate-800 hover:-translate-y-0.5 hover:shadow-xl border border-black/5';
+  const quickButtonText = isDark ? 'text-white/90' : 'text-slate-600';
+  const ctaCardClass = isDark
+    ? 'bg-white/10 text-white hover:bg-white/15 border border-white/10'
+    : 'bg-white text-slate-900 hover:-translate-y-1 hover:shadow-2xl border border-black/5';
+
+  const scrollToPlaces = () => {
+    const section = document.getElementById('places');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-black'} overflow-x-hidden`}>
-      {/* Navigation */}
+    <div className={`min-h-screen ${sectionBg} overflow-x-hidden`}>
       <NavBar />
 
-      {/* Hero Section with Video Background */}
-      <div className="relative h-screen flex items-center justify-center overflow-hidden pt-20">
-        <div className="absolute inset-0 overflow-hidden">
-          <video autoPlay muted loop className="w-full h-full object-cover" poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop">
-            <source src="https://cdn.pixabay.com/video/2021/03/11/70843-532282659_large.mp4" type="video/mp4" />
-          </video>
-          <div className={`absolute inset-0 ${isDark ? 'bg-black/60' : 'bg-black/50'}`}></div>
+      <section className="relative isolate overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2000&q=80"
+            alt="Scenic Pakistan landscape"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/10" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_35%),linear-gradient(180deg,rgba(22,28,36,0.16)_0%,rgba(22,28,36,0.62)_100%)]" />
         </div>
 
-        <div className="relative z-10 text-center px-6 max-w-3xl">
-          <div className="inline-block mb-6">
-            <Sparkles className="w-16 h-16 text-yellow-300" />
-          </div>
-          <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
-            Discover Pakistan
-          </h1>
-          <p className="text-2xl md:text-3xl text-white/90 mb-12 drop-shadow-md">
-            Explore Heritage • Capture Moments • Chat with AI
-          </p>
-          <div className="flex flex-col md:flex-row gap-4 justify-center">
-            <Link to="/ar" className={`${isDark ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105`}>
-              🎥 Start AR Guide
-            </Link>
-            <Link to="/recommendations" className={`${isDark ? 'bg-emerald-700 hover:bg-emerald-600' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105`}>
-              🗺️ Explore Places
-            </Link>
-            <Link to="/chat" className={`${isDark ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-700'} text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105`}>
-              💬 Chat with AI
-            </Link>
-            <Link to="/checkout" className={`${isDark ? 'bg-amber-700 hover:bg-amber-600' : 'bg-amber-600 hover:bg-amber-700'} text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105`}>
-              💳 Checkout
-            </Link>
-          </div>
-        </div>
+        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-end px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-12">
+          <div className="max-w-3xl text-center text-white lg:text-left">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/90 backdrop-blur-md">
+              <Sparkles className="h-4 w-4" />
+              Pakistan travel guide
+            </div>
+            <h1 className="font-serif text-5xl font-bold leading-[0.95] tracking-tight text-white drop-shadow-2xl sm:text-6xl lg:text-7xl">
+              Welcome to Pakistan
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/88 sm:text-lg lg:text-xl">
+              Explore heritage, mountains, and living culture through a cleaner, more editorial travel experience.
+            </p>
 
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="text-white text-center opacity-70">
-            <p className="text-sm mb-2">Scroll Down</p>
-            <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-              <div className="w-1 h-2 bg-white rounded-full mt-2"></div>
+            <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
+              {heroActions.map((action) => {
+                const Icon = action.icon;
+
+                if (action.onClick) {
+                  return (
+                    <button
+                      key={action.label}
+                      onClick={scrollToPlaces}
+                      className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${quickButtonClass}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{action.label}</span>
+                    </button>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={action.label}
+                    to={action.to}
+                    className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${quickButtonClass}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{action.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-5 text-sm text-white/75 lg:justify-start">
+              <span className="inline-flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                AR monument recognition
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                AI travel chat
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Compass className="h-4 w-4" />
+                Curated destinations
+              </span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Featured Places */}
-      <section id="places" className={`py-20 px-6 ${isDark ? 'bg-gray-800' : 'bg-gray-900'}`}>
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-5xl font-bold text-white mb-4 text-center">Featured Destinations</h2>
-          <p className={`text-xl ${isDark ? 'text-gray-300' : 'text-gray-400'} text-center mb-16`}>Three iconic places of Pakistan</p>
+      <section id="places" className="border-t border-black/5 bg-white px-4 py-14 text-slate-900 sm:px-6 lg:px-8 lg:py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">Featured destinations</p>
+              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                Places to go
+              </h2>
+            </div>
+            <Link
+              to="/recommendations"
+              className="inline-flex items-center gap-2 self-start rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
+            >
+              Find out more
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {places.map((place, idx) => (
-              <Link key={idx} to="/ar" className="group rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className={`relative h-64 overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-800'}`}>
-                  <img src={place.image} alt={place.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <div className={`bg-gradient-to-b ${isDark ? 'from-gray-700 to-gray-800' : 'from-gray-800 to-gray-900'} p-6`}>
-                  <h3 className="text-2xl font-bold text-white mb-2">{place.name}</h3>
-                  <p className={`${isDark ? 'text-gray-300' : 'text-gray-400'} mb-4`}>{place.description}</p>
-                  <div className="text-emerald-400 font-bold">Scan in AR →</div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            {featuredPlaces.map((place) => (
+              <Link
+                key={place.name}
+                to="/ar"
+                className={`group overflow-hidden rounded-2xl shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(15,23,42,0.14)] ${panelBg}`}
+              >
+                <div className="relative aspect-[4/5] overflow-hidden">
+                  <img
+                    src={place.image}
+                    alt={place.name}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">{place.location}</p>
+                    <h3 className="mt-2 text-xl font-bold leading-tight">{place.name}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/85">{place.description}</p>
+                  </div>
                 </div>
               </Link>
             ))}
@@ -107,110 +184,29 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Video Gallery */}
-      <section id="videos" className={`py-20 px-6 ${isDark ? 'bg-gray-900' : 'bg-black'}`}>
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-5xl font-bold text-white mb-4 text-center">Pakistan's Beauty</h2>
-          <p className={`text-xl ${isDark ? 'text-gray-300' : 'text-gray-400'} text-center mb-16`}>Stunning landscapes & experiences</p>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {videos.map((video) => (
-              <div key={video.id} onClick={() => setActiveVideo(video.id)} className="group rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
-                <div className={`relative h-48 ${isDark ? 'bg-gray-700' : 'bg-gray-800'} overflow-hidden`}>
-                  <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                    <Play className="w-16 h-16 text-white opacity-80 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </div>
-                <div className={`${isDark ? 'bg-gray-800' : 'bg-gray-900'} p-4`}>
-                  <h3 className="text-lg font-bold text-white mb-1">{video.title}</h3>
-                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-400'}`}>{video.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      <section className={`${isDark ? 'bg-slate-950' : 'bg-[#f3ede4]'} px-4 py-14 sm:px-6 lg:px-8`}>
+        <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-3">
+          <Link to="/ar" className={`rounded-3xl p-6 transition ${ctaCardClass}`}>
+            <Camera className="h-6 w-6 text-emerald-600" />
+            <h3 className="mt-4 text-xl font-bold">AR monument guide</h3>
+            <p className={`mt-2 text-sm leading-6 ${quickButtonText}`}>Point your camera at a landmark and get instant context.</p>
+          </Link>
+          <Link to="/recommendations" className={`rounded-3xl p-6 transition ${ctaCardClass}`}>
+            <Compass className="h-6 w-6 text-emerald-600" />
+            <h3 className="mt-4 text-xl font-bold">Smart recommendations</h3>
+            <p className={`mt-2 text-sm leading-6 ${quickButtonText}`}>Browse personalized destinations with clean travel cues.</p>
+          </Link>
+          <Link to="/chat" className={`rounded-3xl p-6 transition ${ctaCardClass}`}>
+            <MessageCircle className="h-6 w-6 text-emerald-600" />
+            <h3 className="mt-4 text-xl font-bold">AI travel companion</h3>
+            <p className={`mt-2 text-sm leading-6 ${quickButtonText}`}>Ask for routes, history, and what to do next.</p>
+          </Link>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className={`py-20 px-6 ${isDark ? 'bg-gray-800' : 'bg-gray-900'}`}>
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-5xl font-bold text-white mb-16 text-center">Our Features</h2>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <Link to="/ar" className="group">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-8 h-full hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className="bg-white/20 w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Camera className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">AR Monument Guide</h3>
-                <p className="text-white/90 mb-6">Point your camera and discover monument stories with AI recognition</p>
-                <div className="flex items-center text-white font-bold group-hover:gap-3 gap-2 transition-all">
-                  Start Scanning <Navigation className="w-4 h-4" />
-                </div>
-              </div>
-            </Link>
-
-            <Link to="/recommendations" className="group">
-              <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-2xl p-8 h-full hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className="bg-white/20 w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <MapPin className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">Smart Recommendations</h3>
-                <p className="text-white/90 mb-6">Get personalized travel suggestions with real-time weather and ratings</p>
-                <div className="flex items-center text-white font-bold group-hover:gap-3 gap-2 transition-all">
-                  Explore Places <Navigation className="w-4 h-4" />
-                </div>
-              </div>
-            </Link>
-
-            <Link to="/chat" className="group">
-              <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl p-8 h-full hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className="bg-white/20 w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <MessageCircle className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">AI Travel Companion</h3>
-                <p className="text-white/90 mb-6">Chat with our AI assistant for instant travel advice</p>
-                <div className="flex items-center text-white font-bold group-hover:gap-3 gap-2 transition-all">
-                  Start Chatting <Navigation className="w-4 h-4" />
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className={`py-16 px-6 ${isDark ? 'bg-gradient-to-r from-emerald-800 to-teal-700' : 'bg-gradient-to-r from-emerald-700 to-teal-600'}`}>
-        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8 text-center">
-          <div><div className="text-5xl font-bold text-white mb-2">50+</div><div className="text-white/80 text-lg">Heritage Sites</div></div>
-          <div><div className="text-5xl font-bold text-white mb-2">100+</div><div className="text-white/80 text-lg">Destinations</div></div>
-          <div><div className="text-5xl font-bold text-white mb-2">24/7</div><div className="text-white/80 text-lg">AI Support</div></div>
-          <div><div className="text-5xl font-bold text-white mb-2">∞</div><div className="text-white/80 text-lg">Possibilities</div></div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className={`${isDark ? 'bg-gray-900' : 'bg-black'} text-gray-400 py-12 px-6 text-center`}>
-        <p className="mb-2">© 2026 Pakistan Explorer. Discover Pakistan's Heritage.</p>
-        <p className="text-sm">Built with ❤️ for tourism & education</p>
+      <footer className={`border-t border-black/5 px-4 py-8 text-center text-sm ${isDark ? 'bg-slate-950 text-white/60' : 'bg-white text-slate-500'}`}>
+        Pakistan AR Guide
       </footer>
-
-      {/* Video Modal */}
-      {activeVideo && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="relative w-full max-w-4xl my-8">
-            <button onClick={() => setActiveVideo(null)} className="absolute -top-10 right-0 text-white hover:text-gray-300 transition">
-              <X className="w-8 h-8" />
-            </button>
-            <div className={`${isDark ? 'bg-gray-800' : 'bg-gray-900'} rounded-2xl overflow-hidden`}>
-              <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
-                <iframe className="absolute top-0 left-0 w-full h-full" src={`https://www.youtube.com/embed/video_id_${activeVideo}?autoplay=1`} frameBorder="0" allow="autoplay; encrypted-media" allowFullScreen />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
