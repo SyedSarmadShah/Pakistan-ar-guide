@@ -101,13 +101,21 @@ const TripPlanner = () => {
 
             <input placeholder="Travel style (e.g. family, adventure)" value={travelStyle} onChange={e=>setTravelStyle(e.target.value)} className="flex-1 p-2 border rounded" />
 
-            <input type="number" min={1} value={perDayCapacity} onChange={(e)=>setPerDayCapacity(Number(e.target.value))} className="w-36 p-2 border rounded" aria-label="Per-day capacity" />
-            <input type="number" min={1} value={defaultDurationHours} onChange={(e)=>setDefaultDurationHours(Number(e.target.value))} className="w-36 p-2 border rounded" aria-label="Default duration hours" />
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 mr-1">Per-day capacity</label>
+              <input type="number" min={1} value={perDayCapacity} onChange={(e)=>setPerDayCapacity(Number(e.target.value))} className="w-28 p-2 border rounded" aria-label="Per-day capacity" />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 mr-1">Default duration (hrs)</label>
+              <input type="number" min={1} value={defaultDurationHours} onChange={(e)=>setDefaultDurationHours(Number(e.target.value))} className="w-28 p-2 border rounded" aria-label="Default duration hours" />
+            </div>
 
             <button onClick={generate} className="bg-emerald-600 text-white px-4 py-2 rounded">Generate</button>
           </div>
 
           {statusMessage && <div className="mt-2 text-sm text-orange-600">{statusMessage}</div>}
+          <div className="mt-2 text-sm text-gray-500">Hints: <span className="font-medium">Per-day capacity</span> = how many places to visit per day. <span className="font-medium">Default duration</span> = estimated hours spent at each place.</div>
           <div className="text-sm text-gray-500">Uses top-ranked places from dataset and groups them across days (heuristic).</div>
         </div>
 
@@ -117,17 +125,17 @@ const TripPlanner = () => {
             {itinerary.days.map(d => (
               <div key={d.day} className="bg-white p-4 rounded shadow mb-3">
                 <h3 className="font-bold">Day {d.day}</h3>
-                <ul className="mt-2 space-y-1">
-                  {d.items.map((it, idx) => (
-                    <li key={idx} className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium">{it.place}</div>
-                        <div className="text-sm text-gray-500">{it.city} • est {it.estDurationHours}h</div>
-                      </div>
-                      <div className="text-xs text-gray-400">Score: {Math.round(it.recommendedScore || 0)}</div>
-                    </li>
-                  ))}
-                </ul>
+                    <ul className="mt-2 space-y-1">
+                      {d.items.map((it, idx) => (
+                        <li key={idx} className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium">{it.place}</div>
+                            <div className="text-sm text-gray-500">{it.city} • est {it.estDurationHours}h</div>
+                          </div>
+                          <div className="text-xs text-gray-400">Rec. score: {Math.round(it.recommendedScore || 0)}</div>
+                        </li>
+                      ))}
+                    </ul>
               </div>
             ))}
 
