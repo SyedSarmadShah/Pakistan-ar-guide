@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import NavBar from './NavBar';
 
 const BASE_TOTAL = 25000;
 const PROMOS = {
@@ -186,6 +187,7 @@ const Checkout = () => {
 
   return (
     <div className="checkout-page">
+      <NavBar />
       <style>{`
         :root {
           --emerald: #1a6b4a;
