@@ -14,7 +14,7 @@ const Chatbot = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || 'http://localhost:3000/api/chat';
+  const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || '/api/chat';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,7 +44,19 @@ const Chatbot = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        let errorMessage = 'Failed to get response';
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -56,7 +68,9 @@ const Chatbot = () => {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I\'m having trouble connecting. Please make sure the chatbot server is running on port 3000.'
+        content: error instanceof Error && error.message
+          ? `Sorry, the chatbot could not reply: ${error.message}`
+          : 'Sorry, the chatbot could not reply. Please make sure the backend server is running.'
       }]);
     } finally {
       setIsLoading(false);
@@ -192,7 +206,7 @@ const Chatbot = () => {
             </button>
           </form>
           <p className={`text-xs mt-3 text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Note: Make sure the chatbot server is running on port 3000
+            Note: Start the backend in the recommendation and chatbot folder before using the AI chat.
           </p>
         </div>
       </div>

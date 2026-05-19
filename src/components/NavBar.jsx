@@ -28,6 +28,7 @@ const NavBar = () => {
   const navItems = [
     { label: 'Home', path: '/' },
     { label: 'AR Guide', path: '/ar' },
+    { label: 'Trip Planner', path: '/planner' },
     { label: 'Recommendations', path: '/recommendations' },
     { label: 'Checkout', path: '/checkout', icon: CreditCard },
     { label: 'Favorites', path: '/favorites', icon: Heart },
