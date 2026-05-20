@@ -923,7 +923,18 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({ message })
         });
 
-        const data = await res.json();
+        const responseText = await res.text();
+        let data = {};
+
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          data = { response: responseText || 'No response available.' };
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error || data.response || `Request failed with status ${res.status}`);
+        }
 
         // Remove typing indicator
         typingIndicator.style.display = 'none';

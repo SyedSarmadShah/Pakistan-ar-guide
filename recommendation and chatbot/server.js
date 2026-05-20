@@ -9,12 +9,18 @@ import chatHandler from './api/chat.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
-const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const frontendOrigins = Array.from(new Set([
+  'http://localhost:5173',
+  'http://172.20.32.76:5173',
+  ...(process.env.FRONTEND_ORIGIN || '').split(',')
+]))
+  .map(origin => origin.trim())
+  .filter(Boolean);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(cors({ origin: frontendOrigin }));
+app.use(cors({ origin: frontendOrigins }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(__dirname));
 

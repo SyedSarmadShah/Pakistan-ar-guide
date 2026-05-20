@@ -14,7 +14,7 @@ const Chatbot = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || '/api/chat';
+  const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/chat`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -43,23 +43,27 @@ const Chatbot = () => {
         body: JSON.stringify({ message: userMessage })
       });
 
+      const responseText = await response.text();
+      let data = {};
+
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        data = { response: responseText || '' };
+      }
+
       if (!response.ok) {
         let errorMessage = 'Failed to get response';
 
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          const errorText = await response.text();
-          if (errorText) {
-            errorMessage = errorText;
-          }
+        if (data.error) {
+          errorMessage = data.error;
+        } else if (data.response) {
+          errorMessage = data.response;
         }
 
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: data.response || 'Sorry, I couldn\'t process that request.'

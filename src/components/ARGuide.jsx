@@ -104,13 +104,7 @@ const ARGuide = () => {
       updateStatus('Initializing...', 'loading');
       
       if (!navigator.mediaDevices?.getUserMedia) {
-        updateStatus('Camera not supported', 'error');
-        return;
-      }
-
-      const modelLoaded = await loadModel();
-      if (!modelLoaded) {
-        updateStatus('Continue without AI? Refresh to retry.', 'error');
+        updateStatus('Camera not supported in this browser or context. Use localhost/HTTPS and allow camera permission.', 'error');
         return;
       }
 
@@ -125,21 +119,23 @@ const ARGuide = () => {
       
       updateStatus('Camera granted! Starting video...', 'loading');
       
-      setIsScanning(true);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        
-        try {
+
           await videoRef.current.play();
-          updateStatus('✅ Camera active! Scanning for monuments...', 'success');
-          startScanning();
-        } catch (playErr) {
-          updateStatus('Play error: ' + playErr.message, 'error');
-        }
+          setIsScanning(true);
+          updateStatus('Camera active! Loading AI model...', 'loading');
       }
+
+        const modelLoaded = await loadModel();
+        if (!modelLoaded) {
+          updateStatus('Camera active, but AI model failed to load. Refresh to retry.', 'error');
+          return;
+        }
+
+        updateStatus('✅ Camera active! Scanning for monuments...', 'success');
+        startScanning();
       
     } catch (err) {
       console.error('Camera error:', err);
