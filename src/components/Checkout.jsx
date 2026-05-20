@@ -22,6 +22,7 @@ const initialErrors = {
 
 const Checkout = () => {
   const navigate = useNavigate();
+  const [logoVisible, setLogoVisible] = useState(true);
 
   const goHome = () => {
     navigate('/');
@@ -236,8 +237,8 @@ const Checkout = () => {
         }
 
         .checkout-logo {
-          width: 36px;
-          height: 36px;
+          width: 64px;
+          height: 64px;
           border-radius: 8px;
           display: grid;
           place-items: center;
@@ -556,7 +557,15 @@ const Checkout = () => {
         <button type="button" className="checkout-back-btn" onClick={goHome}>
           Back to Home
         </button>
-        <div className="checkout-logo">PK</div>
+        <div className="checkout-logo">
+          <img
+            src="/images/logo.png"
+            alt="Ghoomo Pakistan"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, display: logoVisible ? 'block' : 'none' }}
+            onLoad={() => setLogoVisible(true)}
+            onError={() => setLogoVisible(false)}
+          />
+        </div>
         <div className="checkout-brand">Ghoomo Pakistan</div>
         <div className="checkout-secure">SECURE CHECKOUT</div>
       </header>

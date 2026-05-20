@@ -48,16 +48,25 @@ const NavBar = () => {
     setMobileMenuOpen(false);
   };
 
+  const [logoVisible, setLogoVisible] = useState(true);
+
   return (
     <nav className={`${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'} shadow-lg sticky top-0 z-50 transition`}>
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div 
+          <div
             onClick={() => handleNavClick('/')}
-            className="cursor-pointer font-bold text-2xl text-emerald-600 flex items-center gap-2 hover:text-emerald-700 transition"
+            className="cursor-pointer font-bold text-xl text-emerald-600 flex items-center gap-3 hover:text-emerald-700 transition flex-shrink-0 mr-6"
           >
-            🇵🇰 Ghoomo Pakistan
+            <img
+              src="/images/logo.png"
+              alt="Ghoomo Pakistan"
+              className={`h-16 w-16 object-contain ${logoVisible ? 'block' : 'hidden'}`}
+              onLoad={() => setLogoVisible(true)}
+              onError={() => setLogoVisible(false)}
+            />
+            <span className="whitespace-nowrap leading-none">Ghoomo Pakistan</span>
           </div>
 
           {/* Desktop Navigation */}
