@@ -12,6 +12,7 @@ import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import { DarkModeProvider } from './context/DarkModeContext';
 import { AuthProvider } from './context/AuthContext';
+import GuideBot from './components/GuideBot';
 
 const App = () => {
   return (
@@ -35,6 +36,7 @@ const App = () => {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <GuideBot />
         </Router>
       </DarkModeProvider>
     </AuthProvider>
