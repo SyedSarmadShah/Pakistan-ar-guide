@@ -3,6 +3,7 @@ import { Heart, MapPin, Star, Cloud, AlertTriangle, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDarkMode } from '../context/DarkModeContext';
 import { CardSkeleton } from './LoadingSkeleton';
+import { getPlaceImage } from '../utils/imageMapper';
 import NavBar from './NavBar';
 
 const Favorites = () => {
@@ -21,19 +22,6 @@ const Favorites = () => {
     "Kalam": "Kalam", "Chitral": "Chitral", "Lahore": "Lahore",
     "Larkana": "Larkana", "Thatta": "Thatta", "Ziarat": "Ziarat",
     "Islamabad": "Islamabad", "Taxila": "Taxila", "Murree": "Murree"
-  };
-
-  const images = {
-    "Taxila": "https://images.unsplash.com/photo-1516156008625-3a9d6067fab7?w=400&h=300&fit=crop",
-    "Badshahi Mosque": "https://images.unsplash.com/photo-1605662503629-e58f91ce4a72?w=400&h=300&fit=crop",
-    "Mohenjo-daro": "https://images.unsplash.com/photo-1587573171259-18c88e0b5e5f?w=400&h=300&fit=crop",
-    "Hunza Valley": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-    "Swat Valley": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-    "Deosai National Park": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop",
-    "Skardu Valley": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-    "Faisal Mosque": "https://images.unsplash.com/photo-1605662503629-e58f91ce4a72?w=400&h=300&fit=crop",
-    "Lake Saiful Muluk": "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=400&h=300&fit=crop",
-    "Lahore Fort": "https://images.unsplash.com/photo-1587573171259-18c88e0b5e5f?w=400&h=300&fit=crop",
   };
 
   useEffect(() => {
@@ -183,7 +171,7 @@ const Favorites = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {favorites.map((place, idx) => {
               const weather = weatherData[place.city];
-              const placeImage = images[place.place] || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop";
+              const placeImage = getPlaceImage(place.place);
               const difficulty = getDifficulty(place);
               const budget = getBudget(place);
 

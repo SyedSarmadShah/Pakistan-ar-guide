@@ -9,6 +9,7 @@ import { trackClick, trackFavorite, trackSearch } from '../utils/tracking';
 import { rankPlaces } from '../utils/recommendationEngine';
 import { getCurrentSeason, getUserLocation, mapWeatherToType } from '../utils/context';
 import { getTrendingScore } from '../utils/trending';
+import { getPlaceImage } from '../utils/imageMapper';
 
 const Recommendations = () => {
   const { isDark } = useDarkMode();
@@ -140,7 +141,7 @@ const Recommendations = () => {
   const loadTourismData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/recommendation and chatbot/places_dataset.csv');
+      const response = await fetch('/recommendation%20and%20chatbot/places_dataset.csv');
       const csvText = await response.text();
       const parsed = parseCSV(csvText);
       setTourismData(parsed);
@@ -362,24 +363,12 @@ const Recommendations = () => {
 
   const PlaceCard = ({ place }) => {
     const [weather, setWeather] = useState(null);
-    const images = {
-      "Taxila": "https://images.unsplash.com/photo-1516156008625-3a9d6067fab7?w=400&h=300&fit=crop",
-      "Badshahi Mosque": "https://images.unsplash.com/photo-1605662503629-e58f91ce4a72?w=400&h=300&fit=crop",
-      "Mohenjo-daro": "https://images.unsplash.com/photo-1587573171259-18c88e0b5e5f?w=400&h=300&fit=crop",
-      "Hunza Valley": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      "Swat Valley": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      "Deosai National Park": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop",
-      "Skardu Valley": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      "Faisal Mosque": "https://images.unsplash.com/photo-1605662503629-e58f91ce4a72?w=400&h=300&fit=crop",
-      "Lake Saiful Muluk": "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=400&h=300&fit=crop",
-      "Lahore Fort": "https://images.unsplash.com/photo-1587573171259-18c88e0b5e5f?w=400&h=300&fit=crop",
-    };
     
     useEffect(() => {
       getWeather(place.city).then(setWeather);
     }, [place.city]);
     
-    const placeImage = images[place.place] || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop";
+    const placeImage = getPlaceImage(place.place);
     const [showDetails, setShowDetails] = useState(false);
     
     // Determine recommendation quality indicator

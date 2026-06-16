@@ -16,6 +16,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
+import { getPlaceImage } from '../utils/imageMapper';
 import NavBar from './NavBar';
 
 const HomePage = () => {
@@ -26,28 +27,28 @@ const HomePage = () => {
   const recommendations = [
     {
       name: 'Hunza Valley',
-      image: 'https://images.unsplash.com/photo-1518076295597-9f1b6a2f6d57?auto=format&fit=crop&w=800&q=80',
+      image: getPlaceImage('Hunza Valley'),
       category: 'Nature & Adventure',
       description: 'Glacial water, terraced villages, fruit orchards, and dramatic mountain walls of Karakoram.',
       path: '/recommendations'
     },
     {
       name: 'Skardu',
-      image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=800&q=80',
+      image: getPlaceImage('Skardu Valley'),
       category: 'Valleys & Lakes',
       description: 'A gateway to some of the world\'s highest peaks, cold deserts, and quiet alpine lakes.',
       path: '/recommendations'
     },
     {
       name: 'Lahore',
-      image: 'https://images.unsplash.com/photo-1605662503629-e58f91ce4a72?auto=format&fit=crop&w=800&q=80',
+      image: getPlaceImage('Lahore Fort'),
       category: 'History & Culture',
       description: 'Mughal grandeur, ancient forts, rich street food markets, and centuries of living culture.',
       path: '/recommendations'
     },
     {
       name: 'Taxila',
-      image: 'https://images.unsplash.com/photo-1516156008625-3a9d6067fab7?auto=format&fit=crop&w=800&q=80',
+      image: getPlaceImage('Taxila'),
       category: 'Ancient Heritage',
       description: 'Ancient centers of learning, sacred ruins, and layered Buddhist archaeological heritage.',
       path: '/recommendations'
