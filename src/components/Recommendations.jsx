@@ -6,6 +6,7 @@ import { useDarkMode } from '../context/DarkModeContext';
 import NavBar from './NavBar';
 import { getUserProfile, updateUserProfile } from '../utils/userProfile';
 import { trackClick, trackFavorite, trackSearch } from '../utils/tracking';
+import { fetchRecommendations } from '../utils/apiService';
 import { rankPlaces } from '../utils/recommendationEngine';
 import { getCurrentSeason, getUserLocation, mapWeatherToType } from '../utils/context';
 import { getTrendingScore } from '../utils/trending';
@@ -224,7 +225,7 @@ const Recommendations = () => {
     });
   };
 
-  const applyFilters = () => {
+  const applyFilters = async () => {
     let filtered = [...tourismData];
     
     if (searchQuery) {
@@ -261,13 +262,15 @@ const Recommendations = () => {
       filtered = filtered.filter(item => isFavorite(item.place));
     }
 
-    const ranked = rankPlaces(filtered, getUserProfile(), {
+    const contextPayload = {
       currentSeason: getCurrentSeason(),
       weatherType,
       userLocation,
       cityCoordinates,
-    });
+    };
 
+    const userProfile = getUserProfile();
+    const { data: ranked } = await fetchRecommendations({ places: filtered, userProfile, context: contextPayload });
     setFilteredData(ranked);
   };
 
@@ -471,6 +474,17 @@ const Recommendations = () => {
               {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
                 <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>
                   <strong>Why recommended:</strong><br/>{place.scoreBreakdown.slice(0, 2).join(' • ')}
+                </div>
+              )}
+
+              {Array.isArray(place.similarPlaces) && place.similarPlaces.length > 0 && (
+                <div className={`${isDark ? 'text-gray-300' : 'text-gray-600'} text-xs space-y-1`}>
+                  <strong>Similar places:</strong>
+                  <ul className="list-disc list-inside">
+                    {place.similarPlaces.map((similar) => (
+                      <li key={`${similar.place}-${similar.city}`}>{similar.place} • {similar.city}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>

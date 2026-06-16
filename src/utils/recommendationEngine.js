@@ -1,111 +1,125 @@
+import { computeContentSimilarity, findTopSimilarPlaces } from './similarityEngine';
+import { scoreContext } from './contextScorer';
 import { getTrendingScore } from './trending';
 
-const includesText = (text, keyword) => {
-  return String(text || '').toLowerCase().includes(String(keyword || '').toLowerCase());
-};
+const clamp = (value) => Math.min(1, Math.max(0, Number(value) || 0));
+const normalizeName = (place) => String(place.name || place.place || '').trim();
 
-const toRad = (value) => (value * Math.PI) / 180;
+const computeUserBehaviorScore = (place, userProfile = {}) => {
+  const placeName = normalizeName(place);
+  const category = place.category || '';
+  const likedCategories = userProfile.likedCategories || [];
+  const interactions = userProfile.interactions || {};
 
-const haversineKm = (a, b) => {
-  if (!a || !b) return null;
-  const R = 6371;
-  const dLat = toRad((b.lat || 0) - (a.lat || 0));
-  const dLon = toRad((b.lon || 0) - (a.lon || 0));
-  const lat1 = toRad(a.lat || 0);
-  const lat2 = toRad(b.lat || 0);
-
-  const aa =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
-  return R * c;
-};
-
-const resolvePlaceLocation = (place, context) => {
-  if (typeof place.lat === 'number' && typeof place.lon === 'number') {
-    return { lat: place.lat, lon: place.lon };
-  }
-
-  const city = place.city || '';
-  if (!city || !context?.cityCoordinates) return null;
-  return context.cityCoordinates[city] || null;
-};
-
-export const calculateScore = (place, user, context) => {
   let score = 0;
-  const placeName = place.name || place.place || '';
-  const season = place.bestSeason || place.season || '';
-  const breakdown = [];
+  const reasons = [];
 
-  if ((user.likedCategories || []).includes(place.category)) {
-    score += 5;
-    breakdown.push('Category match');
+  if ((userProfile.favorites || []).includes(placeName)) {
+    score += 0.25;
+    reasons.push('Previously saved as favorite');
+  }
+  if ((userProfile.visitedPlaces || []).includes(placeName)) {
+    score += 0.1;
+    reasons.push('Already viewed this place before');
+  }
+  if (category && likedCategories.includes(category)) {
+    score += 0.15;
+    reasons.push(`Matches your preferred ${category} interest`);
   }
 
-  if ((user.favorites || []).includes(placeName)) {
-    score += 4;
-    breakdown.push('Favorite boost');
+  const clickCount = Number(interactions.clicks?.[placeName] || 0);
+  score += clamp(clickCount * 0.03);
+  if (clickCount > 0) reasons.push('You clicked this place before');
+
+  const favoriteCount = Number(interactions.favorites?.[placeName] || 0);
+  score += clamp(favoriteCount * 0.08);
+
+  const skipCount = Number(interactions.skips?.[placeName] || 0);
+  score -= clamp(skipCount * 0.12);
+  if (skipCount > 0) reasons.push('This place was skipped previously');
+
+  const timeSpent = Number(interactions.timeSpent?.[placeName] || 0);
+  score += clamp(Math.min(timeSpent / 300, 0.18));
+  if (timeSpent > 20) reasons.push('You spent longer reading about this place');
+
+  const searchMatch = (userProfile.searchHistory || []).some((query) =>
+    String(query).toLowerCase().includes(String(place.category || '').toLowerCase()) ||
+    String(query).toLowerCase().includes(String(place.province || '').toLowerCase())
+  );
+  if (searchMatch) {
+    score += 0.08;
+    reasons.push('Search history suggests this destination type');
   }
 
-  if ((user.visitedPlaces || []).includes(placeName)) {
-    score += 1;
-  }
+  return { score: clamp(score), reasons };
+};
 
-  if (includesText(season, context.currentSeason)) {
-    score += 3;
-    breakdown.push('Season match');
-  }
-
-  if (place.rating) {
-    score += place.rating * 2;
-    breakdown.push('High rating');
-  }
-
-  score += (place.popularity || 0) * 0.1;
-
-  if (place.weatherTag && place.weatherTag === context.weatherType) {
-    score += 2;
-    breakdown.push('Weather match');
-  }
-
-  const trendBoost = getTrendingScore(placeName) * 0.5;
-  score += trendBoost;
-  if (trendBoost > 0) {
-    breakdown.push('Trending');
-  }
-
-  const placeLocation = resolvePlaceLocation(place, context);
-  const distanceKm = context?.userLocation && placeLocation ? haversineKm(context.userLocation, placeLocation) : null;
-
-  if (typeof distanceKm === 'number') {
-    if (distanceKm <= 100) {
-      score += 10;
-      breakdown.push('Nearby');
-    } else if (distanceKm <= 500) {
-      score += 5;
-      breakdown.push('Regional match');
-    }
-  }
-
+const computeTrendingBoost = (placeName) => {
+  const raw = getTrendingScore(placeName) || 0;
+  const score = clamp(raw / 5);
   return {
-    score: Number(score.toFixed(2)),
-    distanceKm: typeof distanceKm === 'number' ? Number(distanceKm.toFixed(1)) : null,
-    scoreBreakdown: breakdown,
+    score,
+    reasons: score > 0.3 ? ['Popular among users with similar interests'] : [],
   };
 };
 
-export const rankPlaces = (places, user, context) => {
+export const calculateScore = (place, userProfile = {}, context = {}, allPlaces = []) => {
+  const placeName = normalizeName(place);
+  const content = computeContentSimilarity(userProfile, place, context);
+  const contextScore = scoreContext(place, context, userProfile);
+  const behavior = computeUserBehaviorScore(place, userProfile);
+  const trending = computeTrendingBoost(placeName);
+
+  const WEIGHTS = {
+    content: 0.4,
+    behavior: 0.25,
+    context: 0.25,
+    trending: 0.1,
+  };
+
+  const finalScore = clamp(
+    content.score * WEIGHTS.content +
+    behavior.score * WEIGHTS.behavior +
+    contextScore.score * WEIGHTS.context +
+    trending.score * WEIGHTS.trending
+  );
+
+  const reasons = [
+    ...content.reasons,
+    ...behavior.reasons,
+    ...contextScore.reasons,
+    ...trending.reasons,
+  ].filter(Boolean);
+
+  return {
+    finalScore: Number((finalScore * 100).toFixed(0)),
+    contentScore: Number((content.score * 100).toFixed(0)),
+    contextScore: Number((contextScore.score * 100).toFixed(0)),
+    userBehaviorScore: Number((behavior.score * 100).toFixed(0)),
+    trendingScore: Number((trending.score * 100).toFixed(0)),
+    reasons: [...new Set(reasons)],
+    scoreBreakdown: [...new Set(reasons)],
+    distanceKm: contextScore.distanceKm,
+    similarPlaces: findTopSimilarPlaces(place, allPlaces, 3),
+  };
+};
+
+export const rankPlaces = (places, userProfile = {}, context = {}) => {
   return [...places]
     .map((place) => {
-      const result = calculateScore(place, user, context);
+      const result = calculateScore(place, userProfile, context, places);
       return {
         ...place,
         name: place.name || place.place,
         bestSeason: place.bestSeason || place.season || '',
-        score: result.score,
-        distanceKm: result.distanceKm,
+        score: result.finalScore,
+        contentScore: result.contentScore,
+        contextScore: result.contextScore,
+        userBehaviorScore: result.userBehaviorScore,
+        trendingScore: result.trendingScore,
         scoreBreakdown: result.scoreBreakdown,
+        distanceKm: result.distanceKm,
+        similarPlaces: result.similarPlaces,
       };
     })
     .sort((a, b) => b.score - a.score);
