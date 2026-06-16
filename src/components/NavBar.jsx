@@ -82,7 +82,6 @@ const NavBar = () => {
   const primaryNav = [
     { label: 'Explore Pakistan', path: '/recommendations' },
     { label: 'Trip Planner', path: '/planner' },
-    { label: 'AR Guide', path: '/ar' },
     { label: 'Packages', path: '/checkout' },
   ];
 

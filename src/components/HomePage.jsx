@@ -84,9 +84,9 @@ const HomePage = () => {
     {
       title: 'Top Experiences',
       icon: Sparkles,
-      description: 'Use the AR guide to scan monuments and listen to spoken audio stories.',
+      description: 'Discover immersive cultural highlights and local experiences across Pakistan.',
       badge: 'Experience',
-      to: '/ar',
+      to: '/recommendations',
       color: 'from-amber-500 to-orange-600'
     }
   ];
@@ -104,12 +104,6 @@ const HomePage = () => {
       description: 'Build personalized day-by-day travel itineraries in minutes based on your budget.',
       icon: Calendar,
       to: '/planner'
-    },
-    {
-      title: 'AR Monument Guide',
-      description: 'Point your camera at historical monuments to scan and learn their stories instantly.',
-      icon: Camera,
-      to: '/ar'
     },
     {
       title: 'Curated Travel Packages',
@@ -229,7 +223,7 @@ const HomePage = () => {
             </div>
             <h3 className="mt-4 font-bold text-lg">Book & Travel</h3>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-[200px]">
-              Book ticket packages and explore historical sites with our AR guide.
+              Book ticket packages and explore Pakistan’s most iconic historical sites.
             </p>
           </div>
         </div>
@@ -391,7 +385,6 @@ const HomePage = () => {
           <div className="flex gap-4 text-xs">
             <Link to="/recommendations" className="hover:underline">Explore</Link>
             <Link to="/planner" className="hover:underline">Plan</Link>
-            <Link to="/ar" className="hover:underline">AR Guide</Link>
           </div>
         </div>
       </footer>
