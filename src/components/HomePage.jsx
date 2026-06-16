@@ -1,211 +1,398 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Camera, Compass, Info, MapPin, MessageCircle, Sparkles, Ticket } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { 
+  ArrowRight, 
+  Camera, 
+  Compass, 
+  MapPin, 
+  MessageSquare, 
+  Sparkles, 
+  Ticket, 
+  Calendar, 
+  ArrowRightCircle, 
+  Info,
+  Layers,
+  ChevronRight,
+  ShieldCheck
+} from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import NavBar from './NavBar';
 
 const HomePage = () => {
   const { isDark } = useDarkMode();
+  const navigate = useNavigate();
 
-  const featuredPlaces = [
-    {
-      name: 'Badshahi Mosque',
-      image: '/images/badshahi-mosque.jpg',
-      location: 'Lahore',
-      description: 'Mughal grandeur, red sandstone, and a skyline-defining courtyard.'
-    },
-    {
-      name: 'Mohenjo-daro',
-      image: '/images/mohenjo-daro.jpg',
-      location: 'Sindh',
-      description: 'One of the world’s earliest urban settlements, still quietly powerful.'
-    },
-    {
-      name: 'Taxila',
-      image: '/images/taxila.jpg',
-      location: 'Punjab',
-      description: 'Ancient learning, sacred ruins, and layered Buddhist heritage.'
-    },
+  // "Recommended For You" Destinations
+  const recommendations = [
     {
       name: 'Hunza Valley',
-      image: 'https://images.unsplash.com/photo-1518076295597-9f1b6a2f6d57?auto=format&fit=crop&w=1200&q=80',
-      location: 'Gilgit-Baltistan',
-      description: 'Glacial water, terraced villages, and dramatic mountain walls.'
+      image: 'https://images.unsplash.com/photo-1518076295597-9f1b6a2f6d57?auto=format&fit=crop&w=800&q=80',
+      category: 'Nature & Adventure',
+      description: 'Glacial water, terraced villages, fruit orchards, and dramatic mountain walls of Karakoram.',
+      path: '/recommendations'
     },
     {
       name: 'Skardu',
-      image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1200&q=80',
-      location: 'Baltistan',
-      description: 'A gateway to alpine lakes, deserts, and unforgettable road trips.'
+      image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=800&q=80',
+      category: 'Valleys & Lakes',
+      description: 'A gateway to some of the world\'s highest peaks, cold deserts, and quiet alpine lakes.',
+      path: '/recommendations'
+    },
+    {
+      name: 'Lahore',
+      image: 'https://images.unsplash.com/photo-1605662503629-e58f91ce4a72?auto=format&fit=crop&w=800&q=80',
+      category: 'History & Culture',
+      description: 'Mughal grandeur, ancient forts, rich street food markets, and centuries of living culture.',
+      path: '/recommendations'
+    },
+    {
+      name: 'Taxila',
+      image: 'https://images.unsplash.com/photo-1516156008625-3a9d6067fab7?auto=format&fit=crop&w=800&q=80',
+      category: 'Ancient Heritage',
+      description: 'Ancient centers of learning, sacred ruins, and layered Buddhist archaeological heritage.',
+      path: '/recommendations'
     }
   ];
 
-  const heroActions = [
-    { label: 'Top Tours', icon: Compass, to: '/recommendations' },
-    { label: 'Tickets', icon: Ticket, to: '/checkout' },
-    { label: 'Travel Info', icon: Info, to: '/recommendations' },
-    { label: 'Places to Go', icon: MapPin, onClick: true }
+  // Feature cards (Replacing old buttons)
+  const journeyFeatures = [
+    {
+      title: 'Places To Visit',
+      icon: MapPin,
+      description: 'Explore breathtaking valleys, historical mosques, and heritage sites.',
+      badge: 'Discover',
+      to: '/recommendations',
+      color: 'from-emerald-500 to-teal-600'
+    },
+    {
+      title: 'Plan My Trip',
+      icon: Compass,
+      description: 'Input your preferences to auto-generate custom day-by-day itineraries.',
+      badge: 'Plan',
+      to: '/planner',
+      color: 'from-cyan-500 to-blue-600'
+    },
+    {
+      title: 'Book Tickets',
+      icon: Ticket,
+      description: 'Secure flights, hotels, and custom travel packages easily.',
+      badge: 'Book',
+      to: '/checkout',
+      color: 'from-purple-500 to-indigo-600'
+    },
+    {
+      title: 'Top Experiences',
+      icon: Sparkles,
+      description: 'Use the AR guide to scan monuments and listen to spoken audio stories.',
+      badge: 'Experience',
+      to: '/ar',
+      color: 'from-amber-500 to-orange-600'
+    }
   ];
 
-  const sectionBg = isDark ? 'bg-slate-950 text-white' : 'bg-[#f3ede4] text-slate-900';
-  const panelBg = isDark ? 'bg-slate-900/85 border border-white/10' : 'bg-white/90 border border-white/60';
-  const quickButtonClass = isDark
-    ? 'bg-white/10 text-white hover:bg-white/15 border border-white/10'
-    : 'bg-white text-slate-800 hover:-translate-y-0.5 hover:shadow-xl border border-black/5';
-  const quickButtonText = isDark ? 'text-white/90' : 'text-slate-600';
-  const ctaCardClass = isDark
-    ? 'bg-white/10 text-white hover:bg-white/15 border border-white/10'
-    : 'bg-white text-slate-900 hover:-translate-y-1 hover:shadow-2xl border border-black/5';
-
-  const scrollToPlaces = () => {
-    const section = document.getElementById('places');
-    if (section) {
-      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Why Ghoomo Pakistan Feature Showcases
+  const whyShowcases = [
+    {
+      title: 'AI Travel Assistant',
+      description: 'Get instant travel recommendations and guidance tailored to your specific travel style.',
+      icon: MessageSquare,
+      to: '/chat'
+    },
+    {
+      title: 'Smart Trip Planner',
+      description: 'Build personalized day-by-day travel itineraries in minutes based on your budget.',
+      icon: Calendar,
+      to: '/planner'
+    },
+    {
+      title: 'AR Monument Guide',
+      description: 'Point your camera at historical monuments to scan and learn their stories instantly.',
+      icon: Camera,
+      to: '/ar'
+    },
+    {
+      title: 'Curated Travel Packages',
+      description: 'Book trusted, highly-rated travel experiences and activities across Pakistan.',
+      icon: ShieldCheck,
+      to: '/checkout'
     }
-  };
+  ];
+
+  // Dynamic Theme Styling
+  const bgTheme = isDark ? 'bg-gray-950 text-white' : 'bg-slate-50 text-slate-900';
+  const sectionBgTheme = isDark ? 'bg-gray-900/40' : 'bg-white shadow-sm';
+  const cardTheme = isDark ? 'bg-gray-900/90 border border-gray-800' : 'bg-white border border-slate-100 shadow-md';
+  const secondaryBtnTheme = isDark ? 'border-gray-700 hover:bg-gray-800 text-white' : 'border-slate-200 hover:bg-slate-100 text-slate-700';
 
   return (
-    <div className={`min-h-screen ${sectionBg} overflow-x-hidden`}>
+    <div className={`min-h-screen ${bgTheme} transition-colors duration-300 overflow-x-hidden font-sans`}>
       <NavBar />
 
-      <section className="relative isolate overflow-hidden">
-        <div className="absolute inset-0">
+      {/* Hero Section */}
+      <section className="relative h-[88vh] flex items-center justify-center overflow-hidden">
+        {/* Background Image & Overlay */}
+        <div className="absolute inset-0 z-0">
           <img
             src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2000&q=80"
-            alt="Scenic Pakistan landscape"
+            alt="Beautiful Scenic Northern Pakistan Landscape"
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/10" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_35%),linear-gradient(180deg,rgba(22,28,36,0.16)_0%,rgba(22,28,36,0.62)_100%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
         </div>
 
-        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-end px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-12">
-          <div className="max-w-3xl text-center text-white lg:text-left">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/90 backdrop-blur-md">
-              <Sparkles className="h-4 w-4" />
-              Pakistan travel guide
-            </div>
-            <h1 className="font-serif text-5xl font-bold leading-[0.95] tracking-tight text-white drop-shadow-2xl sm:text-6xl lg:text-7xl">
-              Welcome to Pakistan
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/88 sm:text-lg lg:text-xl">
-              Explore heritage, mountains, and living culture through a cleaner, more editorial travel experience.
-            </p>
+        {/* Hero Content */}
+        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400 backdrop-blur-md">
+            <Sparkles className="h-4 w-4 text-emerald-400 animate-spin-slow" />
+            Empowering Your Wanderlust
+          </div>
+          <h1 className="font-serif text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight drop-shadow-md">
+            Discover Pakistan <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+              Like Never Before
+            </span>
+          </h1>
+          <p className="mt-6 max-w-2xl mx-auto text-base sm:text-lg md:text-xl leading-relaxed text-slate-200 font-medium">
+            Plan trips, scan historical monuments, and receive AI-powered travel guidance tailored to your interests.
+          </p>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
-              {heroActions.map((action) => {
-                const Icon = action.icon;
-
-                if (action.onClick) {
-                  return (
-                    <button
-                      key={action.label}
-                      onClick={scrollToPlaces}
-                      className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${quickButtonClass}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{action.label}</span>
-                    </button>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={action.label}
-                    to={action.to}
-                    className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${quickButtonClass}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{action.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-
-            <div className="mt-6 flex flex-wrap justify-center gap-5 text-sm text-white/75 lg:justify-start">
-              <span className="inline-flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                AR monument recognition
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <MessageCircle className="h-4 w-4" />
-                AI travel chat
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <Compass className="h-4 w-4" />
-                Curated destinations
-              </span>
-            </div>
+          {/* Action CTAs */}
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <button
+              onClick={() => navigate('/recommendations')}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-4 shadow-lg shadow-emerald-900/30 hover:scale-105 active:scale-95 transition-all duration-200"
+            >
+              Start Exploring
+              <ArrowRight className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => navigate('/planner')}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white hover:bg-white/10 text-white font-bold px-8 py-4 hover:scale-105 active:scale-95 transition-all duration-200"
+            >
+              Plan My Trip
+            </button>
           </div>
         </div>
       </section>
 
-      <section id="places" className="border-t border-black/5 bg-white px-4 py-14 text-slate-900 sm:px-6 lg:px-8 lg:py-16">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">Featured destinations</p>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Places to go
-              </h2>
+      {/* Quick Start Journey Section */}
+      <section className="py-16 px-6 max-w-7xl mx-auto">
+        <div className="text-center max-w-xl mx-auto mb-12">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-400 mb-2">How it works</p>
+          <h2 className="text-3xl font-serif font-bold">Start Your Journey</h2>
+          <div className="w-12 h-1 bg-emerald-500 mx-auto mt-3 rounded-full"></div>
+        </div>
+
+        {/* Process Flow Steps */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+          {/* Connector Line for desktop */}
+          <div className="hidden md:block absolute top-[40px] left-[12%] right-[12%] h-0.5 border-t-2 border-dashed border-emerald-500/20 z-0"></div>
+
+          {/* Step 1 */}
+          <div className="flex flex-col items-center text-center relative z-10 group">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xl border-4 border-white dark:border-gray-950 shadow-md group-hover:scale-110 transition duration-200">
+              1
             </div>
-            <Link
-              to="/recommendations"
-              className="inline-flex items-center gap-2 self-start rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
-            >
-              Find out more
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <h3 className="mt-4 font-bold text-lg">Explore Destinations</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-[200px]">
+              Discover beautiful spots across all provinces of Pakistan.
+            </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {featuredPlaces.map((place) => (
-              <Link
-                key={place.name}
-                to="/ar"
-                className={`group overflow-hidden rounded-2xl shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(15,23,42,0.14)] ${panelBg}`}
-              >
-                <div className="relative aspect-[4/5] overflow-hidden">
-                  <img
-                    src={place.image}
-                    alt={place.name}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">{place.location}</p>
-                    <h3 className="mt-2 text-xl font-bold leading-tight">{place.name}</h3>
-                    <p className="mt-2 text-sm leading-6 text-white/85">{place.description}</p>
+          {/* Step 2 */}
+          <div className="flex flex-col items-center text-center relative z-10 group">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xl border-4 border-white dark:border-gray-950 shadow-md group-hover:scale-110 transition duration-200">
+              2
+            </div>
+            <h3 className="mt-4 font-bold text-lg">Get AI Recommendations</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-[200px]">
+              Receive smart recommendations personalized to weather & season.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex flex-col items-center text-center relative z-10 group">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xl border-4 border-white dark:border-gray-950 shadow-md group-hover:scale-110 transition duration-200">
+              3
+            </div>
+            <h3 className="mt-4 font-bold text-lg">Plan Your Trip</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-[200px]">
+              Generate a custom, day-by-day itinerary tailored to budget and days.
+            </p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="flex flex-col items-center text-center relative z-10 group">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xl border-4 border-white dark:border-gray-950 shadow-md group-hover:scale-110 transition duration-200">
+              4
+            </div>
+            <h3 className="mt-4 font-bold text-lg">Book & Travel</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-[200px]">
+              Book ticket packages and explore historical sites with our AR guide.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Discovery Flow (Replacing Current Action Buttons) */}
+      <section className={`py-16 px-6 ${sectionBgTheme}`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-10 text-center md:text-left">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-400 mb-2">Our Features</p>
+            <h2 className="text-3xl font-serif font-bold">Plan in Your Way</h2>
+          </div>
+
+          {/* Swipeable Feature Cards - Responsive Flow */}
+          <div className="flex gap-6 overflow-x-auto pb-6 pt-2 snap-x snap-mandatory scrollbar-thin md:grid md:grid-cols-4 md:overflow-x-visible md:pb-0">
+            {journeyFeatures.map((feat, idx) => {
+              const Icon = feat.icon;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => navigate(feat.to)}
+                  className={`snap-start min-w-[280px] md:min-w-0 flex flex-col justify-between p-6 rounded-2xl cursor-pointer hover:-translate-y-2 transition-all duration-300 relative group ${cardTheme} hover:shadow-xl`}
+                >
+                  <div>
+                    {/* Top Row: Icon and Step Badge */}
+                    <div className="flex items-center justify-between">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${feat.color} text-white flex items-center justify-center shadow-md`}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-650 dark:text-emerald-450 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        {feat.badge}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-6 font-bold text-xl flex items-center gap-1">
+                      {feat.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-455">
+                      {feat.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-gray-800 flex items-center text-sm font-semibold text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                    Get Started 
+                    <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
-              </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* "Why Use Ghoomo Pakistan" Section */}
+      <section className="py-20 px-6 max-w-7xl mx-auto">
+        <div className="text-center max-w-xl mx-auto mb-16">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-400 mb-2">Why Choose Us</p>
+          <h2 className="text-3xl font-serif font-bold">Why Use Ghoomo Pakistan</h2>
+          <div className="w-12 h-1 bg-emerald-500 mx-auto mt-3 rounded-full"></div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {whyShowcases.map((show, idx) => {
+            const Icon = show.icon;
+            return (
+              <div 
+                key={idx} 
+                className={`p-6 rounded-2xl flex flex-col justify-between transition border ${cardTheme}`}
+              >
+                <div>
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">{show.title}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                    {show.description}
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => navigate(show.to)}
+                  className={`mt-auto inline-flex items-center gap-1 self-start text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline group`}
+                >
+                  Learn More
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* "Recommended For You" Section */}
+      <section className={`py-20 px-6 ${sectionBgTheme}`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-12 flex flex-col gap-3 md:flex-row md:items-end md:justify-between text-center md:text-left">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-400 mb-2">Curated for You</p>
+              <h2 className="text-3xl font-serif font-bold">Recommended For You</h2>
+            </div>
+            <button
+              onClick={() => navigate('/recommendations')}
+              className="inline-flex items-center gap-2 self-center md:self-end rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 shadow transition hover:scale-105 active:scale-95"
+            >
+              Explore More Recommendations
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {recommendations.map((rec, idx) => (
+              <div
+                key={idx}
+                className={`group flex flex-col justify-between overflow-hidden rounded-2xl shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-lg ${cardTheme}`}
+              >
+                <div>
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img
+                      src={rec.image}
+                      alt={rec.name}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-300 bg-black/30 px-2.5 py-0.5 rounded-full border border-white/10 backdrop-blur-sm">
+                        {rec.category}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="text-xl font-bold">{rec.name}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                      {rec.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-5 pt-0">
+                  <button
+                    onClick={() => navigate(rec.path)}
+                    className={`w-full py-2.5 rounded-xl text-center text-xs font-bold transition flex items-center justify-center gap-1 ${secondaryBtnTheme}`}
+                  >
+                    Explore
+                    <ArrowRightCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className={`${isDark ? 'bg-slate-950' : 'bg-[#f3ede4]'} px-4 py-14 sm:px-6 lg:px-8`}>
-        <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-3">
-          <Link to="/ar" className={`rounded-3xl p-6 transition ${ctaCardClass}`}>
-            <Camera className="h-6 w-6 text-emerald-600" />
-            <h3 className="mt-4 text-xl font-bold">AR monument guide</h3>
-            <p className={`mt-2 text-sm leading-6 ${quickButtonText}`}>Point your camera at a landmark and get instant context.</p>
-          </Link>
-          <Link to="/recommendations" className={`rounded-3xl p-6 transition ${ctaCardClass}`}>
-            <Compass className="h-6 w-6 text-emerald-600" />
-            <h3 className="mt-4 text-xl font-bold">Smart recommendations</h3>
-            <p className={`mt-2 text-sm leading-6 ${quickButtonText}`}>Browse personalized destinations with clean travel cues.</p>
-          </Link>
-          <Link to="/chat" className={`rounded-3xl p-6 transition ${ctaCardClass}`}>
-            <MessageCircle className="h-6 w-6 text-emerald-600" />
-            <h3 className="mt-4 text-xl font-bold">AI travel companion</h3>
-            <p className={`mt-2 text-sm leading-6 ${quickButtonText}`}>Ask for routes, history, and what to do next.</p>
-          </Link>
+      {/* Simple Premium Footer */}
+      <footer className={`border-t py-12 px-6 ${isDark ? 'border-gray-800 bg-gray-950 text-slate-500' : 'border-slate-100 bg-white text-slate-400'} text-center text-sm`}>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="font-serif font-bold text-emerald-600">Ghoomo Pakistan</p>
+          <p className="text-xs">&copy; {new Date().getFullYear()} Ghoomo Pakistan. All rights reserved.</p>
+          <div className="flex gap-4 text-xs">
+            <Link to="/recommendations" className="hover:underline">Explore</Link>
+            <Link to="/planner" className="hover:underline">Plan</Link>
+            <Link to="/ar" className="hover:underline">AR Guide</Link>
+          </div>
         </div>
-      </section>
-
-      <footer className={`border-t border-black/5 px-4 py-8 text-center text-sm ${isDark ? 'bg-slate-950 text-white/60' : 'bg-white text-slate-500'}`}>
-        Pakistan AR Guide
       </footer>
     </div>
   );
