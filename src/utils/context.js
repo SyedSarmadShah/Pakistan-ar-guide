@@ -7,10 +7,15 @@ export const getCurrentSeason = () => {
   return 'Winter';
 };
 
+/**
+ * Request the user's GPS position.
+ * Resolves with { lat, lon } on success, or { error: 'denied' | 'timeout' | 'unavailable' } on failure.
+ * A 15-second timeout gives the browser permission prompt enough time to appear and be answered.
+ */
 export const getUserLocation = () => {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
-      resolve(null);
+      resolve({ error: 'unavailable' });
       return;
     }
 
@@ -21,8 +26,17 @@ export const getUserLocation = () => {
           lon: pos.coords.longitude,
         });
       },
-      () => resolve(null),
-      { enableHighAccuracy: false, timeout: 5000 }
+      (err) => {
+        // err.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        if (err.code === 1) {
+          resolve({ error: 'denied' });
+        } else if (err.code === 3) {
+          resolve({ error: 'timeout' });
+        } else {
+          resolve({ error: 'unavailable' });
+        }
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
     );
   });
 };

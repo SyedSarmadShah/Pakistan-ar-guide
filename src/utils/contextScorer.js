@@ -107,9 +107,15 @@ const scoreDurationFit = (placeDuration, desiredDays) => {
 };
 
 const resolvePlaceLocation = (place, context) => {
-  if (typeof place.lat === 'number' && typeof place.lon === 'number') {
+  // parseFloat on a CSV string produces a number, but an empty/missing value
+  // produces NaN — which is typeof 'number' but not a valid coordinate.
+  if (
+    typeof place.lat === 'number' && !Number.isNaN(place.lat) &&
+    typeof place.lon === 'number' && !Number.isNaN(place.lon)
+  ) {
     return { lat: place.lat, lon: place.lon };
   }
+  // Fall back to city-level coordinates from context when place coords are absent.
   if (!place.city || !context?.cityCoordinates) return null;
   return context.cityCoordinates[place.city] || null;
 };

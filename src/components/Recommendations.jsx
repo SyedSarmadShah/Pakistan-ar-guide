@@ -36,6 +36,7 @@ const Recommendations = () => {
   const [contextCity, setContextCity] = useState('Islamabad');
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('Locating...');
+  const [locationGranted, setLocationGranted] = useState(false);
   
   const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY || '5989bfd5387805e4603d064014e6032f';
 
@@ -286,12 +287,30 @@ const Recommendations = () => {
   };
 
   const initUserContext = async () => {
-    const coords = await getUserLocation();
-    if (coords) {
-      setUserLocation(coords);
+    setLocationStatus('Requesting location… (please allow when prompted)');
+    const result = await getUserLocation();
+
+    if (result && result.lat != null) {
+      // Success — got real GPS coords
+      setUserLocation({ lat: result.lat, lon: result.lon });
+      setLocationGranted(true);
       setLocationStatus('Live location enabled');
     } else {
-      setLocationStatus('Using selected city fallback');
+      const errorType = result?.error;
+      setLocationGranted(false);
+
+      if (errorType === 'denied') {
+        // User explicitly blocked — don't keep showing the button
+        setLocationStatus('Location blocked — enable in browser settings, or select a city below');
+      } else if (errorType === 'timeout') {
+        // Timed out before user responded — let them try again
+        setLocationStatus('Location timed out — tap "Use my location" to retry');
+      } else {
+        // GPS unavailable (no hardware, etc.)
+        setLocationStatus('Location unavailable — using city fallback');
+      }
+
+      // Fall back to the selected city's coordinates
       setUserLocation(cityCoordinates[contextCity] || null);
     }
   };
@@ -389,6 +408,21 @@ const Recommendations = () => {
           
           {/* Filters */}
           <div className="space-y-3">
+            {/* Location bar — always visible so users know distance context */}
+            <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${isDark ? 'border-gray-600 bg-gray-700/60 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+              <LocateFixed className={`w-4 h-4 flex-shrink-0 ${locationGranted ? 'text-emerald-500' : 'text-gray-400'}`} />
+              <span className="text-xs flex-1">{locationStatus}</span>
+              {!locationGranted && !locationStatus.includes('blocked') && (
+                <button
+                  onClick={initUserContext}
+                  className={`text-xs px-2 py-1 rounded font-medium ${isDark ? 'bg-emerald-700 hover:bg-emerald-600 text-white' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'} transition`}
+                >
+                  Use my location
+                </button>
+              )}
+            </div>
+
+            {/* Search + filter toggle row */}
             <div className="flex flex-wrap gap-3">
               <div className="flex-1 min-w-[200px] relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -433,11 +467,6 @@ const Recommendations = () => {
             {showFilters && (
             <>
             <div className={`grid md:grid-cols-2 gap-3 mt-3 pt-3 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isDark ? 'border-gray-600 bg-gray-700 text-gray-200' : 'border-gray-300 bg-white text-gray-700'}`}>
-                <LocateFixed className="w-4 h-4" />
-                <span className="text-sm">{locationStatus}</span>
-              </div>
-
               <select
                 value={contextCity}
                 onChange={(e) => {
@@ -610,6 +639,13 @@ const Recommendations = () => {
               isFavorite={isFavorite}
               onNavigate={() => navigate('/checkout')}
               getWeather={getWeather}
+              noItemsFallback={
+                !userLocation ? (
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Enable location or select a city above to see nearby destinations.
+                  </p>
+                ) : null
+              }
             />
           </div>
         )}
@@ -618,8 +654,20 @@ const Recommendations = () => {
   );
 };
 
-const RecommendationSection = ({ title, items, isDark, favorites, onToggleFavorite, isFavorite, onNavigate, getWeather }) => {
-  if (!items || items.length === 0) return null;
+const RecommendationSection = ({ title, items, isDark, favorites, onToggleFavorite, isFavorite, onNavigate, getWeather, noItemsFallback }) => {
+  if (!items || items.length === 0) {
+    if (noItemsFallback) {
+      return (
+        <section>
+          <h2 className="text-xl font-bold mb-4">{title}</h2>
+          <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 shadow`}>
+            {noItemsFallback}
+          </div>
+        </section>
+      );
+    }
+    return null;
+  }
 
   return (
     <section>
@@ -690,7 +738,7 @@ const PlaceCard = ({ place, isDark, favorites, onToggleFavorite, isFavorite, onN
           )}
           {typeof place.distanceKm === 'number' && (
             <span className={`text-xs font-semibold ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
-              📍 {place.distanceKm}km
+              📍 {place.distanceKm < 1 ? '< 1' : Math.round(place.distanceKm)} km
             </span>
           )}
           {showPopularBadge && (
