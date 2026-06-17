@@ -101,7 +101,7 @@ const Chatbot = () => {
             </div>
             <div>
               <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>AI Travel Companion</h1>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Powered by Groq AI</p>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Powered by Rahbar</p>
             </div>
           </div>
         </div>
