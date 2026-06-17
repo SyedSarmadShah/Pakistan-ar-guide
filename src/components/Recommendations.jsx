@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Filter, MapPin, Star, Cloud, AlertTriangle, Heart, ChevronDown, LocateFixed } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, MapPin, Cloud, AlertTriangle, Heart, ChevronDown, LocateFixed, Droplets, Wind, Thermometer, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GridSkeleton } from './LoadingSkeleton';
 import { useDarkMode } from '../context/DarkModeContext';
@@ -7,10 +7,10 @@ import NavBar from './NavBar';
 import { getUserProfile, updateUserProfile } from '../utils/userProfile';
 import { trackClick, trackFavorite, trackSearch } from '../utils/tracking';
 import { fetchRecommendations } from '../utils/apiService';
-import { rankPlaces } from '../utils/recommendationEngine';
-import { getCurrentSeason, getUserLocation, mapWeatherToType } from '../utils/context';
+import { getCurrentSeason, getUserLocation } from '../utils/context';
 import { getTrendingScore } from '../utils/trending';
 import { getPlaceImage } from '../utils/imageMapper';
+import { fetchWeatherByCoords, batchFetchWeather } from '../utils/weatherService';
 
 const Recommendations = () => {
   const { isDark } = useDarkMode();
@@ -29,7 +29,6 @@ const Recommendations = () => {
   const [seasons, setSeasons] = useState([]);
   const [categories, setCategories] = useState([]);
   const [budgets, setBudgets] = useState([]);
-  const weatherCacheRef = useRef({});
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState([]);
   const [weatherType, setWeatherType] = useState('normal');
@@ -37,17 +36,8 @@ const Recommendations = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('Locating...');
   const [locationGranted, setLocationGranted] = useState(false);
-  
-  const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY || '5989bfd5387805e4603d064014e6032f';
-
-  const cityMap = {
-    "Karimabad": "Hunza", "Hunza": "Hunza", "Skardu": "Skardu",
-    "Naltar": "Gilgit", "Nagar": "Gilgit", "Gojal": "Hunza",
-    "Mingora": "Mingora", "Swat": "Mingora", "Naran": "Naran",
-    "Kalam": "Kalam", "Chitral": "Chitral", "Lahore": "Lahore",
-    "Larkana": "Larkana", "Thatta": "Thatta", "Ziarat": "Ziarat",
-    "Islamabad": "Islamabad", "Taxila": "Taxila", "Murree": "Murree"
-  };
+  // Map of place name → WeatherResult (from Open-Meteo) for every visible card
+  const [weatherMap, setWeatherMap] = useState({});
 
   const cityCoordinates = {
     Lahore: { lat: 31.5204, lon: 74.3587 },
@@ -284,6 +274,17 @@ const Recommendations = () => {
     const userProfile = getUserProfile();
     const { data: ranked } = await fetchRecommendations({ places: filtered, userProfile, context: contextPayload });
     setFilteredData(ranked);
+
+    // After ranking, batch-fetch Open-Meteo weather for every visible place.
+    // We fire this in the background so the cards render immediately and
+    // weather data fills in progressively.
+    batchFetchWeather(ranked, cityCoordinates).then((map) => {
+      const plain = {};
+      map.forEach((weather, placeName) => {
+        if (weather) plain[placeName] = weather;
+      });
+      setWeatherMap(plain);
+    });
   };
 
   const initUserContext = async () => {
@@ -316,20 +317,12 @@ const Recommendations = () => {
   };
 
   const detectContextWeather = async () => {
-    const fallbackCity = contextCity || 'Islamabad';
-
     try {
-      const response = userLocation
-        ? await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${userLocation.lat}&lon=${userLocation.lon}&units=metric&appid=${WEATHER_API_KEY}`
-          )
-        : await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?q=${fallbackCity},PK&units=metric&appid=${WEATHER_API_KEY}`
-          );
-      const data = await response.json();
-      const main = data?.weather?.[0]?.main || '';
-      setWeatherType(mapWeatherToType(main));
-    } catch (error) {
+      // Resolve coordinates: live GPS > selected city fallback
+      const coords = userLocation ?? cityCoordinates[contextCity] ?? cityCoordinates['Islamabad'];
+      const weather = await fetchWeatherByCoords(coords.lat, coords.lon);
+      setWeatherType(weather.type);
+    } catch {
       setWeatherType('normal');
     }
   };
@@ -343,56 +336,6 @@ const Recommendations = () => {
     setBudgetFilter('');
     setShowFavoritesOnly(false);
   };
-
-  const getWeather = useCallback(async (city) => {
-    if (weatherCacheRef.current[city]) return weatherCacheRef.current[city];
-    
-    const apiCity = cityMap[city] || city;
-    
-    try {
-      const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=${apiCity},PK&units=metric&appid=${WEATHER_API_KEY}`
-      );
-      const data = await response.json();
-      
-      if (!data.main) {
-        return { weather: 'N/A', advice: 'Unknown', icon: '☁️' };
-      }
-      
-      const temp = data.main.temp;
-      const condition = data.weather[0].main;
-      let advice = '✅ Good to Visit';
-      let icon = '☀️';
-      
-      if (condition.includes('Rain')) {
-        advice = '⚠️ Rain – Travel Carefully';
-        icon = '🌧️';
-      }
-      if (condition.includes('Snow')) {
-        advice = '❄️ Snowfall – Avoid Roads';
-        icon = '❄️';
-      }
-      if (temp < 0) {
-        advice = '🥶 Extreme Cold – Avoid Visit';
-        icon = '🥶';
-      }
-      if (temp > 40) {
-        advice = '🔥 Extreme Heat – Avoid Visit';
-        icon = '🔥';
-      }
-      
-      const result = {
-        weather: `${condition}, ${temp.toFixed(1)}°C`,
-        advice,
-        icon
-      };
-      
-      weatherCacheRef.current[city] = result;
-      return result;
-    } catch (error) {
-      return { weather: 'Unavailable', advice: 'Unknown', icon: '☁️' };
-    }
-  }, [WEATHER_API_KEY]);
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 to-gray-100'} overflow-x-hidden pb-12`}>
@@ -598,7 +541,7 @@ const Recommendations = () => {
               onToggleFavorite={toggleFavorite}
               isFavorite={isFavorite}
               onNavigate={() => navigate('/checkout')}
-              getWeather={getWeather}
+              weatherMap={weatherMap}
             />
 
             <RecommendationSection
@@ -611,7 +554,7 @@ const Recommendations = () => {
               onToggleFavorite={toggleFavorite}
               isFavorite={isFavorite}
               onNavigate={() => navigate('/checkout')}
-              getWeather={getWeather}
+              weatherMap={weatherMap}
             />
 
             <RecommendationSection
@@ -624,7 +567,7 @@ const Recommendations = () => {
               onToggleFavorite={toggleFavorite}
               isFavorite={isFavorite}
               onNavigate={() => navigate('/checkout')}
-              getWeather={getWeather}
+              weatherMap={weatherMap}
             />
 
             <RecommendationSection
@@ -638,7 +581,7 @@ const Recommendations = () => {
               onToggleFavorite={toggleFavorite}
               isFavorite={isFavorite}
               onNavigate={() => navigate('/checkout')}
-              getWeather={getWeather}
+              weatherMap={weatherMap}
               noItemsFallback={
                 !userLocation ? (
                   <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -654,7 +597,7 @@ const Recommendations = () => {
   );
 };
 
-const RecommendationSection = ({ title, items, isDark, favorites, onToggleFavorite, isFavorite, onNavigate, getWeather, noItemsFallback }) => {
+const RecommendationSection = ({ title, items, isDark, favorites, onToggleFavorite, isFavorite, onNavigate, weatherMap, noItemsFallback }) => {
   if (!items || items.length === 0) {
     if (noItemsFallback) {
       return (
@@ -682,7 +625,7 @@ const RecommendationSection = ({ title, items, isDark, favorites, onToggleFavori
             onToggleFavorite={onToggleFavorite}
             isFavorite={isFavorite}
             onNavigate={onNavigate}
-            getWeather={getWeather}
+            weather={weatherMap?.[place.place] ?? null}
           />
         ))}
       </div>
@@ -690,28 +633,54 @@ const RecommendationSection = ({ title, items, isDark, favorites, onToggleFavori
   );
 };
 
-const PlaceCard = ({ place, isDark, favorites, onToggleFavorite, isFavorite, onNavigate, getWeather }) => {
-  const [weather, setWeather] = useState(null);
+// ─── severity → colour tokens ────────────────────────────────────────────────
+const SEVERITY_STYLES = {
+  good:    { bg: 'bg-emerald-50',  text: 'text-emerald-700',  darkBg: 'bg-emerald-900/30', darkText: 'text-emerald-300'  },
+  info:    { bg: 'bg-blue-50',     text: 'text-blue-700',     darkBg: 'bg-blue-900/30',    darkText: 'text-blue-300'     },
+  warning: { bg: 'bg-amber-50',    text: 'text-amber-700',    darkBg: 'bg-amber-900/30',   darkText: 'text-amber-300'    },
+  danger:  { bg: 'bg-red-50',      text: 'text-red-700',      darkBg: 'bg-red-900/30',     darkText: 'text-red-300'      },
+  neutral: { bg: 'bg-gray-50',     text: 'text-gray-600',     darkBg: 'bg-gray-700/40',    darkText: 'text-gray-400'     },
+};
+
+const PlaceCard = ({ place, isDark, onToggleFavorite, isFavorite, onNavigate, weather }) => {
   const [showDetails, setShowDetails] = useState(false);
 
-  useEffect(() => {
-    getWeather(place.city).then(setWeather);
-  }, [place.city, getWeather]);
-
   const placeImage = getPlaceImage(place.place);
-
-  // Only show "Popular" if trending high
   const showPopularBadge = getTrendingScore(place.place) >= 3;
+
+  // Derive severity from the weather object (which mirrors contextScorer's output)
+  const severity = weather?.advice?.severity ?? 'neutral';
+  const sev = SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.neutral;
 
   return (
     <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden`}>
+      {/* ── Card image ──────────────────────────────────────────────────────── */}
       <div className={`relative h-48 overflow-hidden ${isDark ? 'bg-gray-900' : 'bg-gray-800'}`}>
         <img src={placeImage} alt={place.place} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+        {/* Weather strip — always visible once data arrives */}
+        {weather && (
+          <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-black/55 backdrop-blur-sm flex items-center gap-2">
+            <span className="text-base leading-none" aria-hidden="true">{weather.icon}</span>
+            <span className="text-white text-xs font-semibold flex-1 truncate">
+              {weather.condition}
+            </span>
+            <span className="text-white text-xs font-bold tabular-nums">
+              {weather.temperatureC}°C
+            </span>
+          </div>
+        )}
+
+        {/* Skeleton shimmer while weather loads */}
+        {!weather && (
+          <div className="absolute bottom-0 left-0 right-0 h-7 bg-black/30 animate-pulse" />
+        )}
+
         <button
           onClick={() => onToggleFavorite(place)}
           className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white transition-all duration-200 group"
-          aria-label={isFavorite(place.place) ? "Remove from favorites" : "Add to favorites"}
+          aria-label={isFavorite(place.place) ? 'Remove from favorites' : 'Add to favorites'}
         >
           <Heart
             className={`w-5 h-5 transition-all ${
@@ -723,14 +692,15 @@ const PlaceCard = ({ place, isDark, favorites, onToggleFavorite, isFavorite, onN
         </button>
       </div>
 
+      {/* ── Card body ───────────────────────────────────────────────────────── */}
       <div className="p-5">
         <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-2`}>{place.place}</h3>
 
-        {/* Quick signals: Rating | Budget | Distance | Popular */}
+        {/* Quick signals row */}
         <div className="flex flex-wrap gap-2 mb-3 items-center">
-          <div className={`text-xs font-semibold ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
+          <span className={`text-xs font-semibold ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
             ⭐ {place.rating}
-          </div>
+          </span>
           {place.budgetLevel && (
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
               {place.budgetLevel}
@@ -765,37 +735,106 @@ const PlaceCard = ({ place, isDark, favorites, onToggleFavorite, isFavorite, onN
           )}
         </div>
 
-        {/* Weather info collapsed under details toggle */}
+        {/* Travel advice pill — always visible once weather loaded */}
+        {weather && (
+          <div
+            className={`flex items-start gap-2 text-xs font-medium px-2.5 py-2 rounded-lg mb-3 ${
+              isDark ? `${sev.darkBg} ${sev.darkText}` : `${sev.bg} ${sev.text}`
+            }`}
+          >
+            <span className="mt-px leading-none" aria-hidden="true">
+              {severity === 'good' ? '✅' : severity === 'warning' ? '⚠️' : severity === 'danger' ? '🚫' : 'ℹ️'}
+            </span>
+            <span>{weather.advice.text}</span>
+          </div>
+        )}
+
+        {/* Expandable details toggle */}
         {weather && (
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className={`w-full text-left text-xs p-2 rounded mb-3 transition ${
+            className={`w-full text-left text-xs px-2 py-1.5 rounded mb-3 transition flex items-center gap-1 ${
               showDetails
                 ? isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'
-                : isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
+                : isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
             }`}
+            aria-expanded={showDetails}
           >
-            {showDetails ? '▼ Weather & Details' : '▶ Weather & Details'}
+            <Cloud className="w-3.5 h-3.5" />
+            <span>{showDetails ? '▼ Hide weather details' : '▶ Full weather details'}</span>
           </button>
         )}
 
+        {/* Expanded weather panel */}
         {showDetails && weather && (
-          <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-3 mb-3 text-xs space-y-2`}>
-            <div className="flex items-center gap-2">
-              <Cloud className="w-4 h-4 text-blue-500" />
-              <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{weather.weather}</span>
+          <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-3 mb-3 space-y-3`}>
+
+            {/* Metric badges */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Temperature */}
+              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                <Thermometer className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">{weather.temperatureC}°C</div>
+                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>feels {weather.feelsLikeC}°C</div>
+                </div>
+              </div>
+
+              {/* Humidity */}
+              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                <Droplets className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">{weather.humidity}%</div>
+                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>humidity</div>
+                </div>
+              </div>
+
+              {/* Wind */}
+              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                <Wind className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">{weather.windspeedKmh} km/h</div>
+                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>wind</div>
+                </div>
+              </div>
+
+              {/* Precipitation */}
+              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                <Cloud className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">{weather.precipitationMm} mm</div>
+                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>precipitation</div>
+                </div>
+              </div>
             </div>
-            <div className={`font-medium ${isDark ? 'text-gray-200 bg-blue-900/30' : 'text-gray-700 bg-blue-50'} p-2 rounded`}>
-              {weather.advice}
-            </div>
-            {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
-              <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>
-                <strong>Why recommended:</strong><br/>{place.scoreBreakdown.slice(0, 2).join(' • ')}
+
+            {/* UV index badge — shown only when relevant */}
+            {weather.uvIndex > 0 && (
+              <div className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
+                weather.uvIndex > 10
+                  ? isDark ? 'bg-red-900/30 text-red-300' : 'bg-red-50 text-red-700'
+                  : weather.uvIndex > 6
+                  ? isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'
+                  : isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'
+              }`}>
+                <Eye className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>UV index <strong>{weather.uvIndex}</strong>
+                  {weather.uvIndex > 10 ? ' — very high, use SPF 50+' : weather.uvIndex > 6 ? ' — high, apply sunscreen' : ' — moderate'}
+                </span>
               </div>
             )}
 
+            {/* Why recommended */}
+            {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
+              <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                <strong className={isDark ? 'text-gray-300' : 'text-gray-600'}>Why recommended:</strong>
+                <span className="ml-1">{place.scoreBreakdown.slice(0, 2).join(' • ')}</span>
+              </div>
+            )}
+
+            {/* Similar places */}
             {Array.isArray(place.similarPlaces) && place.similarPlaces.length > 0 && (
-              <div className={`${isDark ? 'text-gray-300' : 'text-gray-600'} text-xs space-y-1`}>
+              <div className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'} space-y-1`}>
                 <strong>Similar places:</strong>
                 <ul className="list-disc list-inside">
                   {place.similarPlaces.map((similar) => (
