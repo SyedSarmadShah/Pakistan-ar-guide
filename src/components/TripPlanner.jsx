@@ -7,14 +7,18 @@ import { MapPin, Calendar, DollarSign, Heart, Loader2, Save, Download, Clock, Ma
 const DATA_CSV = '/recommendation and chatbot/places_dataset.csv';
 const STORAGE_KEY = 'savedItineraries_v1';
 
+// Maps each destination option to a filter keyword matched against city or province in the CSV
 const POPULAR_DESTINATIONS = [
-  { id: 'hunza', name: 'Hunza', description: 'Stunning mountain views' },
-  { id: 'skardu', name: 'Skardu', description: 'Gateway to glaciers' },
-  { id: 'lahore', name: 'Lahore', description: 'Cultural heart of Punjab' },
-  { id: 'islamabad', name: 'Islamabad', description: 'Modern capital city' },
-  { id: 'naran-kaghan', name: 'Naran Kaghan', description: 'Alpine meadows' },
-  { id: 'murree', name: 'Murree', description: 'Hill station paradise' },
-  { id: 'anywhere', name: 'Anywhere in Pakistan', description: 'Surprise me!' },
+  { id: 'hunza',       name: 'Hunza Valley',           filter: 'hunza',      description: 'Stunning mountain views' },
+  { id: 'skardu',      name: 'Skardu',                 filter: 'skardu',     description: 'Gateway to glaciers' },
+  { id: 'lahore',      name: 'Lahore',                 filter: 'lahore',     description: 'Cultural heart of Punjab' },
+  { id: 'islamabad',   name: 'Islamabad',              filter: 'islamabad',  description: 'Modern capital city' },
+  { id: 'taxila',      name: 'Taxila',                 filter: 'taxila',     description: 'Ancient Buddhist ruins' },
+  { id: 'swat',        name: 'Swat & Kalam',           filter: 'swat',       description: 'Valley of greenery' },
+  { id: 'abbottabad',  name: 'Abbottabad & Murree',    filter: 'abbottabad', description: 'Hill station paradise' },
+  { id: 'gilgit',      name: 'Gilgit-Baltistan',       filter: 'gilgit',     description: 'Roof of the world' },
+  { id: 'peshawar',    name: 'Peshawar',               filter: 'peshawar',   description: 'Gateway to the Khyber' },
+  { id: 'anywhere',    name: 'Anywhere in Pakistan',   filter: 'anywhere',   description: 'Surprise me!' },
 ];
 
 const BUDGET_OPTIONS = [
@@ -71,24 +75,38 @@ const TripPlanner = () => {
   }, []);
 
   const generate = () => {
+    if (!places.length) {
+      setStatusMessage('Place data is still loading, please try again in a moment.');
+      return;
+    }
     setIsLoading(true);
-    // Simulate processing delay for better UX
+    setStatusMessage('');
     setTimeout(() => {
       const profile = getUserProfile();
-      const ctx = { userLocation: selectedDestination || null, currentSeason: '' };
-      const opts = { days, budgetLevel, travelStyle: travelStyles.join(', '), perDayCapacity, defaultDurationHours };
+      const destObj = POPULAR_DESTINATIONS.find(d => d.id === selectedDestination);
+      const destFilter = destObj ? destObj.filter : 'anywhere';
+      const ctx = { currentSeason: '' };
+      const opts = {
+        days,
+        budgetLevel,
+        travelStyle: travelStyles.join(','),
+        perDayCapacity,
+        defaultDurationHours,
+        destinationFilter: destFilter,
+      };
       const result = generateItinerary(opts, places, profile, ctx);
       setItinerary(result);
 
-      if (result && result.meta && result.meta.fallbackUsed) {
-        setStatusMessage('No places matched the filters; showing top recommendations instead.');
-      } else if (result && result.meta && result.meta.sourceCount === 0) {
-        setStatusMessage('No places available for the selected filters.');
+      const totalDests = result.days.reduce((sum, d) => sum + d.items.length, 0);
+      if (totalDests === 0) {
+        setStatusMessage('No places could be matched. Try broadening your filters.');
+      } else if (result.meta && result.meta.fallbackUsed) {
+        setStatusMessage('Some filters had no exact matches — showing the best available places instead.');
       } else {
         setStatusMessage('');
       }
       setIsLoading(false);
-    }, 1500);
+    }, 1200);
   };
 
   const saveItinerary = () => {
@@ -151,7 +169,7 @@ const TripPlanner = () => {
                     onClick={() => setShowDestinationMenu(!showDestinationMenu)}
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg text-left flex items-center justify-between hover:border-emerald-400 transition"
                   >
-                    <span className="text-gray-700 font-medium">
+                  <span className="text-gray-700 font-medium">
                       {selectedDestination 
                         ? POPULAR_DESTINATIONS.find(d => d.id === selectedDestination)?.name 
                         : 'Choose a destination...'}
@@ -357,91 +375,151 @@ const TripPlanner = () => {
         {/* Results Section */}
         {itinerary && (
           <div className="mt-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-emerald-600" />
-              Your Personalized Itinerary
-            </h2>
-            <p className="text-gray-600 mb-8">Generated by Rahbar AI • {itinerary.days.length} days • {itinerary.days.reduce((sum, d) => sum + d.items.length, 0)} destinations</p>
-            
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-2">
+              <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Calendar className="w-8 h-8 text-emerald-600" />
+                {title || 'Your Personalized Itinerary'}
+              </h2>
+              {itinerary.meta && itinerary.meta.destination && itinerary.meta.destination !== 'anywhere' && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {POPULAR_DESTINATIONS.find(d => d.filter === itinerary.meta.destination)?.name || itinerary.meta.destination}
+                </span>
+              )}
+            </div>
+            <p className="text-gray-500 mb-8 text-sm">
+              Generated by Rahbar AI &nbsp;•&nbsp; {itinerary.days.length} day{itinerary.days.length !== 1 ? 's' : ''} &nbsp;•&nbsp; {itinerary.days.reduce((sum, d) => sum + d.items.length, 0)} destinations
+            </p>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Itinerary Cards */}
-              <div className="lg:col-span-2 space-y-4">
-                {itinerary.days.map((d, dayIdx) => (
+              {/* Itinerary Day Cards */}
+              <div className="lg:col-span-2 space-y-6">
+                {itinerary.days.map((d) => (
                   <div key={d.day} className="bg-white rounded-xl shadow-md hover:shadow-lg transition overflow-hidden border-l-4 border-emerald-600">
-                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
-                      <h3 className="font-bold text-xl text-gray-900">Day {d.day}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{d.items.length} stop{d.items.length !== 1 ? 's' : ''}</p>
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-xl text-gray-900">Day {d.day}</h3>
+                        <p className="text-sm text-gray-500 mt-0.5">{d.items.length} stop{d.items.length !== 1 ? 's' : ''}</p>
+                      </div>
+                      <span className="text-sm font-medium text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
+                        ~{d.items.reduce((s, i) => s + (i.estDurationHours || 0), 0)}h total
+                      </span>
                     </div>
-                    <div className="p-6 space-y-4">
-                      {d.items.map((it, idx) => (
-                        <div key={idx} className="flex gap-4 pb-4 last:pb-0 border-b border-gray-100 last:border-b-0">
-                          <div className="flex flex-col items-center">
-                            <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
-                              {idx + 1}
+
+                    {d.items.length === 0 ? (
+                      <p className="px-6 py-4 text-gray-400 text-sm italic">No places assigned to this day.</p>
+                    ) : (
+                      <div className="divide-y divide-gray-100">
+                        {d.items.map((it, idx) => (
+                          <div key={idx} className="flex gap-4 px-6 py-5">
+                            {/* Stop number + connector */}
+                            <div className="flex flex-col items-center flex-shrink-0">
+                              <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow">
+                                {idx + 1}
+                              </div>
+                              {idx < d.items.length - 1 && (
+                                <div className="w-0.5 flex-1 bg-emerald-200 mt-2 min-h-6" />
+                              )}
                             </div>
-                            {idx < d.items.length - 1 && <div className="w-1 h-8 bg-emerald-200 mt-2"></div>}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 text-lg">{it.place}</h4>
-                            <p className="text-sm text-gray-600 mt-1">📍 {it.city}</p>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {it.estDurationHours}h
-                              </span>
-                              <span>⭐ Score: {Math.round(it.recommendedScore || 0)}</span>
+
+                            {/* Place details */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-gray-900 text-base leading-snug">{it.place}</h4>
+
+                              {/* Location */}
+                              <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                                {[it.city, it.province].filter(Boolean).join(', ')}
+                              </p>
+
+                              {/* Category badge */}
+                              {it.category && (
+                                <span className="inline-block mt-2 px-2.5 py-0.5 bg-teal-50 text-teal-700 text-xs font-medium rounded-full border border-teal-200">
+                                  {it.category}
+                                </span>
+                              )}
+
+                              {/* Meta row: duration, rating, season */}
+                              <div className="flex flex-wrap items-center gap-3 mt-2.5 text-xs text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {it.estDurationHours}h visit
+                                </span>
+                                {it.rating > 0 && (
+                                  <span className="flex items-center gap-1 text-amber-600 font-medium">
+                                    ⭐ {Number(it.rating).toFixed(1)}
+                                  </span>
+                                )}
+                                {it.season && (
+                                  <span className="flex items-center gap-1">
+                                    🗓 Best in: {it.season}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
 
-              {/* Right Side Actions */}
+              {/* Right Sidebar */}
               <div className="space-y-4">
                 {/* Summary Card */}
                 <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl shadow-lg p-6 text-white">
-                  <h3 className="font-bold text-lg mb-4">Trip Summary</h3>
-                  <div className="space-y-3">
+                  <h3 className="font-bold text-lg mb-5">Trip Summary</h3>
+                  <div className="space-y-4">
                     <div>
-                      <p className="text-emerald-100 text-sm">Total Days</p>
-                      <p className="text-2xl font-bold">{itinerary.days.length}</p>
+                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Total Days</p>
+                      <p className="text-3xl font-bold">{itinerary.days.length}</p>
                     </div>
                     <div>
-                      <p className="text-emerald-100 text-sm">Total Destinations</p>
-                      <p className="text-2xl font-bold">{itinerary.days.reduce((sum, d) => sum + d.items.length, 0)}</p>
+                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Total Destinations</p>
+                      <p className="text-3xl font-bold">{itinerary.days.reduce((sum, d) => sum + d.items.length, 0)}</p>
                     </div>
                     <div>
-                      <p className="text-emerald-100 text-sm">Estimated Duration</p>
-                      <p className="text-2xl font-bold">{itinerary.days.reduce((sum, d) => sum + d.items.reduce((s, i) => s + (i.estDurationHours || 0), 0), 0)}h</p>
+                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Estimated Duration</p>
+                      <p className="text-3xl font-bold">
+                        {itinerary.days.reduce((sum, d) => sum + d.items.reduce((s, i) => s + (i.estDurationHours || 0), 0), 0)}h
+                      </p>
                     </div>
+                    <div>
+                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Budget</p>
+                      <p className="text-lg font-semibold capitalize">{budgetLevel ? BUDGET_OPTIONS.find(b => b.value === budgetLevel)?.label : 'Any'}</p>
+                    </div>
+                    {travelStyles.length > 0 && (
+                      <div>
+                        <p className="text-emerald-100 text-xs uppercase tracking-wide">Interests</p>
+                        <p className="text-sm font-medium mt-1">{travelStyles.join(', ')}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="space-y-3">
+                <div className="bg-white rounded-xl shadow-md p-4 space-y-3">
                   <button
                     onClick={saveItinerary}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition"
                   >
-                    <Save className="w-5 h-5" />
+                    <Save className="w-4 h-4" />
                     Save Itinerary
                   </button>
                   <button
                     onClick={exportJSON}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-lg transition"
                   >
-                    <Download className="w-5 h-5" />
-                    Export JSON
+                    <Download className="w-4 h-4" />
+                    Export as JSON
                   </button>
                   <button
                     onClick={exportICS}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition"
                   >
-                    <Download className="w-5 h-5" />
-                    Export ICS
+                    <Download className="w-4 h-4" />
+                    Export as Calendar
                   </button>
                 </div>
               </div>

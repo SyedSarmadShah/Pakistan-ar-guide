@@ -12,7 +12,6 @@ const port = process.env.PORT || 3000;
 const frontendOrigins = Array.from(new Set([
   'http://localhost:5173',
   'http://172.20.32.76:5173',
-  'http://172.20.27.213:5173',
   ...(process.env.FRONTEND_ORIGIN || '').split(',')
 ]))
   .map(origin => origin.trim())

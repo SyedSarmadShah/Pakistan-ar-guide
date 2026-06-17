@@ -12,59 +12,105 @@ const haversineKm = (a, b) => {
   return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
 };
 
+// Map UI budget values (low/medium/high) to CSV budget_level values (budget/moderate/luxury)
+const BUDGET_MAP = {
+  low: ['budget'],
+  economy: ['budget'],
+  medium: ['moderate', 'budget'],
+  standard: ['moderate', 'budget'],
+  high: ['moderate', 'luxury', 'premium', 'budget'],
+  luxury: ['moderate', 'luxury', 'premium', 'budget'],
+};
+
+// Map UI travel style labels to keywords that appear inside compound CSV categories
+// CSV categories look like: "Valley/Adventure", "Historical/Religious", "National Park/Hiking"
+const STYLE_KEYWORDS = {
+  adventure:   ['adventure', 'trekking', 'trek', 'hiking', 'rafting', 'skiing', 'mountain', 'peak', 'climbing'],
+  culture:     ['cultural', 'culture', 'heritage village', 'museum', 'art', 'festival', 'bazaar', 'market'],
+  history:     ['historical', 'heritage', 'monument', 'fort', 'archaeological', 'stupa', 'monastery', 'ruins', 'ancient', 'temple', 'mosque'],
+  nature:      ['valley', 'national park', 'lake', 'waterfall', 'forest', 'meadow', 'hills', 'garden', 'park', 'nature'],
+  family:      ['valley', 'park', 'lake', 'garden', 'recreation', 'zoo', 'hill station', 'urban park'],
+  photography: ['valley', 'mountain', 'lake', 'meadow', 'viewpoint', 'hill viewpoint', 'national park', 'nature'],
+  food:        ['food', 'market', 'bazaar', 'street food', 'cafe', 'restaurant'],
+  religious:   ['religious', 'mosque', 'shrine', 'temple', 'gurdwara', 'church', 'monastery', 'stupa'],
+};
+
+// Check if a place's compound category string matches any keyword in the given list
+const categoryMatchesKeywords = (categoryStr, keywords) => {
+  const cat = String(categoryStr || '').toLowerCase();
+  // Split on "/" and "/" to get individual category parts, then check each part
+  const parts = cat.split(/[\/,]+/).map(p => p.trim());
+  return keywords.some(kw => parts.some(part => part.includes(kw)));
+};
+
 export function generateItinerary(options = {}, places = [], userProfile = {}, context = {}) {
   const days = Math.max(1, Number(options.days) || 3);
-  const budgetLevel = options.budgetLevel || '';
-  const travelStyle = (options.travelStyle || '').toLowerCase().trim();
+  const budgetLevel = (options.budgetLevel || '').toLowerCase().trim();
+  // travelStyles can be comma-separated (multiple interests selected)
+  const travelStyles = (options.travelStyle || '')
+    .toLowerCase()
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
   const perDayCapacity = Math.max(1, Number(options.perDayCapacity) || 3);
   const defaultDurationHours = Number(options.defaultDurationHours) || 2;
 
-  // Friendly travel-style -> category aliases (lowercase)
-  const styleAliases = {
-    family: ['valley', 'park', 'lake', 'historical', 'zoo', 'garden'],
-    adventure: ['hiking', 'trek', 'adventure', 'rafting', 'mountain'],
-    history: ['historical', 'heritage', 'monument', 'museum'],
-    nature: ['valley', 'national park', 'lake', 'waterfall', 'forest'],
-    food: ['food', 'market', 'bazaar', 'street food', 'cafe', 'restaurant'],
-    religious: ['mosque', 'shrine', 'temple', 'religious', 'gurdwara'],
-  };
-
-  // Start with full set, apply budget filter first
+  // --- Destination filter: filter by city or province ---
+  const destinationFilter = (options.destinationFilter || '').toLowerCase().trim();
   let candidates = places.slice();
-  if (budgetLevel) {
-    candidates = candidates.filter(p => String(p.budgetLevel || '').toLowerCase() === String(budgetLevel).toLowerCase());
+  if (destinationFilter && destinationFilter !== 'anywhere') {
+    const destCandidates = candidates.filter(p => {
+      const city = String(p.city || '').toLowerCase();
+      const province = String(p.province || '').toLowerCase();
+      return city.includes(destinationFilter) || province.includes(destinationFilter);
+    });
+    // Only apply destination filter if it returns results
+    if (destCandidates.length > 0) candidates = destCandidates;
   }
 
-  // Apply travelStyle mapping: try aliases first, otherwise substring match on category
-  if (travelStyle) {
-    const aliasList = styleAliases[travelStyle];
-    if (Array.isArray(aliasList)) {
-      const aliasSet = new Set(aliasList.map(a => a.toLowerCase()));
-      candidates = candidates.filter(p => aliasSet.has((p.category || '').toLowerCase()));
-    } else {
-      // fallback: substring match
-      candidates = candidates.filter(p => (p.category || '').toLowerCase().includes(travelStyle));
+  // --- Budget filter: map UI value to CSV values ---
+  if (budgetLevel) {
+    const acceptedBudgets = BUDGET_MAP[budgetLevel] || [budgetLevel];
+    const budgetFiltered = candidates.filter(p =>
+      acceptedBudgets.includes(String(p.budgetLevel || '').toLowerCase())
+    );
+    // Only apply if it doesn't empty the list
+    if (budgetFiltered.length > 0) candidates = budgetFiltered;
+  }
+
+  // --- Travel style filter: substring match against compound categories ---
+  if (travelStyles.length > 0) {
+    // Collect all keywords from all selected styles
+    const allKeywords = travelStyles.flatMap(style => STYLE_KEYWORDS[style] || [style]);
+    if (allKeywords.length > 0) {
+      const styleFiltered = candidates.filter(p => categoryMatchesKeywords(p.category, allKeywords));
+      // Only apply if it returns results; otherwise keep all candidates
+      if (styleFiltered.length > 0) candidates = styleFiltered;
     }
   }
 
-  // Rank the filtered candidates
+  // --- Rank the filtered candidates ---
   let ranked = rankPlaces(candidates, userProfile || {}, { ...context, currentSeason: context.currentSeason || '' });
 
-  // If filters removed everything, fallback to ranked full list (so the UI gets recommendations)
+  // If somehow still empty, fall back to full ranked list
   let fallbackUsed = false;
   if (!ranked || ranked.length === 0) {
     fallbackUsed = true;
     ranked = rankPlaces(places, userProfile || {}, { ...context, currentSeason: context.currentSeason || '' });
   }
 
-  // Limit by days * perDayCapacity
+  // Limit by days × perDayCapacity
   const maxPlaces = Math.min(ranked.length, days * perDayCapacity);
   const selected = ranked.slice(0, maxPlaces).map((p, idx) => ({ ...p, selectedRank: idx + 1 }));
 
-  // Build day-by-day itinerary using greedy nearest selection per day
+  // Build day-by-day itinerary using greedy nearest-neighbour selection
   const itinerary = Array.from({ length: days }, () => []);
   const assigned = new Set();
-  const basePoint = context.userLocation || (selected[0] ? { lat: selected[0].lat, lon: selected[0].lon } : null);
+
+  // Use coordinates of first selected place as starting point if no location provided
+  const basePoint = (selected[0] && selected[0].lat != null)
+    ? { lat: selected[0].lat, lon: selected[0].lon }
+    : null;
 
   for (let day = 0; day < days; day++) {
     let remainingSlots = perDayCapacity;
@@ -75,8 +121,10 @@ export function generateItinerary(options = {}, places = [], userProfile = {}, c
       for (let i = 0; i < selected.length; i++) {
         if (assigned.has(i)) continue;
         const p = selected[i];
-        const loc = { lat: p.lat, lon: p.lon };
-        const dist = currentPoint ? haversineKm(currentPoint, loc) : (p.popularity ? 0 : 1000);
+        const dist = (currentPoint && p.lat != null)
+          ? haversineKm(currentPoint, { lat: p.lat, lon: p.lon })
+          : 0;
+        // Combine distance with recommendation rank; lower is better
         const score = (dist || 0) * 1.0 + (p.selectedRank || 1000) * 0.5;
         if (score < bestScore) {
           bestScore = score;
@@ -89,13 +137,17 @@ export function generateItinerary(options = {}, places = [], userProfile = {}, c
       itinerary[day].push({
         place: place.place || place.name || '',
         city: place.city || '',
+        province: place.province || '',
+        category: place.category || '',
+        rating: place.rating || 0,
+        season: place.season || '',
         lat: place.lat,
         lon: place.lon,
         estDurationHours: place.estDurationHours || defaultDurationHours,
         notes: '',
         recommendedScore: place.score || 0,
       });
-      currentPoint = { lat: place.lat, lon: place.lon };
+      currentPoint = (place.lat != null) ? { lat: place.lat, lon: place.lon } : currentPoint;
       remainingSlots--;
     }
   }
@@ -107,6 +159,7 @@ export function generateItinerary(options = {}, places = [], userProfile = {}, c
       options,
       sourceCount: ranked.length,
       fallbackUsed,
+      destination: options.destinationFilter || '',
     },
     days: itinerary.map((items, idx) => ({ day: idx + 1, items })),
   };

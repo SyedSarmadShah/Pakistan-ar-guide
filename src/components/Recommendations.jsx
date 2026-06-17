@@ -236,7 +236,7 @@ const Recommendations = () => {
     });
   };
 
-  const applyFilters = async (cancelled = false) => {
+  const applyFilters = async () => {
     let filtered = [...tourismData];
     
     if (searchQuery) {
@@ -282,11 +282,7 @@ const Recommendations = () => {
 
     const userProfile = getUserProfile();
     const { data: ranked } = await fetchRecommendations({ places: filtered, userProfile, context: contextPayload });
-
-    // Ignore the result if the effect was cleaned up while we were awaiting.
-    if (!cancelled) {
-      setFilteredData(ranked);
-    }
+    setFilteredData(ranked);
   };
 
   const initUserContext = async () => {
