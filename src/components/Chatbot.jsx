@@ -14,7 +14,7 @@ const Chatbot = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/chat`;
+  const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || '/api/chat';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
