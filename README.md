@@ -1,119 +1,143 @@
 # Pakistan Explorer
 
-An integrated tourism platform combining AR monument recognition, smart recommendations, and AI chatbot assistance for exploring Pakistan's heritage sites.
+A single-page tourism platform for Pakistan with:
+- Live AR monument recognition
+- Smart destination recommendations
+- AI travel chat support
 
-## Features
+## What this app does
 
-🎯 **AR Monument Guide** - Point your camera at historical monuments and get AI-powered recognition with audio narration  
-🗺️ **Smart Recommendations** - Browse 100+ destinations with real-time weather and personalized filters  
-💬 **AI Travel Companion** - Chat with an AI assistant powered by Groq for instant travel advice
+- **AR Guide**: Uses your camera to recognize monuments and speak details using the Web Speech API
+- **Recommendations**: Loads tourism data, lets you search and filter by province, season, budget, and weather
+- **Chatbot**: Connects to a backend AI assistant for travel questions and suggestions
 
-## Quick Start
+## Quick Setup
 
-### Option 1: One Command (Recommended)
+### 1. Install dependencies
 
+From the repo root:
 ```bash
 npm install
+```
+
+Then install the chatbot backend dependencies:
+```bash
 cd "recommendation and chatbot"
 npm install
 cd ..
 ```
 
-Then open `http://localhost:5173`
+### 2. Start the backend
 
-### Option 2: Manual Setup
+In a separate terminal:
+```bash
+cd "recommendation and chatbot"
+npm start
+```
 
-1. **Install Dependencies**
-   ```bash
-   npm install
-   cd "recommendation and chatbot"
-   npm install
-   cd ..
-   ```
+This runs the chatbot server on `http://localhost:3000`.
 
-2. **Start Backend (Terminal 1)**
-   ```bash
-   cd "recommendation and chatbot"
-   npm start
-   ```
+### 3. Start the frontend
 
-3. **Start Frontend (Terminal 2)**
-   ```bash
-   npm run dev
-   ```
+From the root project folder:
+```bash
+npm run dev
+```
 
-4. **Open** `http://localhost:5173`
+Open the app at:
+```bash
+http://localhost:5173
+```
 
-## Project Structure
+## App structure
 
 ```
 pakistan-ar-guide/
 ├── src/
 │   ├── components/
-│   │   ├── HomePage.jsx       # Landing page with navigation
 │   │   ├── ARGuide.jsx        # Camera-based monument recognition
-│   │   ├── Recommendations.jsx # Tourism database with filters
-│   │   └── Chatbot.jsx        # AI chat interface
-│   ├── App.jsx                # Router setup
-│   └── index.jsx              # React entry
+│   │   ├── Chatbot.jsx        # AI travel chat interface
+│   │   ├── Recommendations.jsx # Tourism destination browser
+│   │   ├── HomePage.jsx       # Landing dashboard
+│   │   └── ...                # Planner, favorites, checkout, auth UI
+│   ├── context/               # Dark mode and auth providers
+│   ├── utils/                 # Recommendation, tracking, data helpers
+│   ├── App.jsx               # App routes and protected pages
+│   └── index.jsx             # React entry point
+├── public/
+│   ├── test.html              # Camera test page
+│   └── images/                # Static asset folder
 ├── recommendation and chatbot/
-│   ├── server.js              # Express backend for chatbot
-│   ├── api/chat.js            # Groq AI integration
-│   └── places_dataset.csv     # Tourism data
-├── .env                       # API keys (auto-created)
-└── start.sh                   # Startup script
-
+│   ├── api/chat.js            # Chat API integration
+│   ├── server.js              # Express server for AI chat
+│   ├── places_dataset.csv     # Tourism dataset consumed by recommendations
+│   ├── .env.example           # Backend env example
+│   └── package.json
+├── .env.example               # Frontend env example
+├── package.json
+└── vite.config.js
 ```
 
-## Technologies
+## Main pages
 
-- **Frontend**: React, Vite, React Router, Tailwind CSS
-- **AR/CV**: Teachable Machine, TensorFlow.js
-- **AI**: Groq API (llama-3.3-70b)
-- **APIs**: OpenWeather, Web Speech API
-- **Backend**: Express, Node.js
+- `/` — Home dashboard with navigation and featured highlights
+- `/ar` — AR monument scanner and narration experience
+- `/recommendations` — Destination browser with filters and weather-aware ranking
+- `/chat` — AI travel assistant chat interface
 
-## Usage
+> Note: The app uses authentication and protected routes for the main pages.
 
-1. **Home Page**: Choose from AR Guide, Recommendations, or Chatbot
-2. **AR Guide**: Click "Start Camera" and point at monuments (Taxila, Badshahi Mosque, Mohenjo-daro)
-3. **Recommendations**: Filter by province, season, search places, view weather
-4. **Chatbot**: Ask questions about Pakistan tourism
+## Required environment variables
 
-## Configuration
+Create a root `.env` file from `.env.example` and add:
 
-Frontend variables (root `.env`):
 ```env
-VITE_WEATHER_API_KEY=your_weather_key
+VITE_WEATHER_API_KEY=your_openweather_api_key
 VITE_CHAT_API_URL=http://localhost:3000/api/chat
 ```
 
-Backend variables (`recommendation and chatbot/.env`):
+Create `recommendation and chatbot/.env` from `.env.example` and add:
+
 ```env
-GROQ_API_KEY=your_groq_key
+GROQ_API_KEY=your_groq_api_key
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
 ```
 
-You can copy from `.env.example` files in both folders.
+## Important notes
+
+- The frontend runs on **port 5173** and proxies `/api` calls to the backend.
+- The backend serves `/api/chat` and must be started before using the chatbot.
+- The AR feature requires camera access and works best over **localhost** or **HTTPS**.
 
 ## Troubleshooting
 
-- **Camera not working?** Use HTTPS or localhost. Check permissions.
-- **Chatbot not responding?** Ensure backend is running on port 3000.
-- **Build errors?** Run `npm install` in both root and `recommendation and chatbot/` folders.
+- If the camera fails, confirm browser permission and that you opened the app at `http://localhost:5173`.
+- If the chatbot fails, verify `recommendation and chatbot` backend is running and `GROQ_API_KEY` is set.
+- If the recommendation page cannot load data, confirm `places_dataset.csv` is accessible.
 
-## Development
+## Development commands
 
+From the root folder:
 ```bash
-npm run dev      # Frontend dev server (port 5173)
-npm run build    # Production build
-npm run preview  # Preview production build
+npm run dev
+npm run build
+npm run preview
 ```
 
-## Team Project
+From `recommendation and chatbot`:
+```bash
+npm start
+```
 
-Final Year Project combining:
-- Computer Vision (AR Monument Recognition)
-- Data Visualization (Recommendations System)
-- Natural Language Processing (AI Chatbot)
+## Technologies used
+
+- React + Vite
+- React Router
+- Teachable Machine (`@teachablemachine/image`)
+- TensorFlow.js
+- Express backend for AI chat
+- Groq API
+- OpenWeather API
+- Web Speech API
+- Tailwind-style UI via utility classes
