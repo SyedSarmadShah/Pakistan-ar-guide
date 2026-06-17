@@ -90,7 +90,18 @@ const Recommendations = () => {
   }, []);
 
   useEffect(() => {
-    applyFilters();
+    // Debounce rapid filter changes (e.g. typing in the search box) to prevent
+    // flooding /api/recommendations and causing screen glitching.
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      if (!cancelled) {
+        await applyFilters(cancelled);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [searchQuery, provinceFilter, seasonFilter, categoryFilter, ratingFilter, budgetFilter, showFavoritesOnly, tourismData, favorites, weatherType, userLocation]);
 
   useEffect(() => {
@@ -225,7 +236,7 @@ const Recommendations = () => {
     });
   };
 
-  const applyFilters = async () => {
+  const applyFilters = async (cancelled = false) => {
     let filtered = [...tourismData];
     
     if (searchQuery) {
@@ -271,7 +282,11 @@ const Recommendations = () => {
 
     const userProfile = getUserProfile();
     const { data: ranked } = await fetchRecommendations({ places: filtered, userProfile, context: contextPayload });
-    setFilteredData(ranked);
+
+    // Ignore the result if the effect was cleaned up while we were awaiting.
+    if (!cancelled) {
+      setFilteredData(ranked);
+    }
   };
 
   const initUserContext = async () => {
