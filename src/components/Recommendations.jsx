@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Filter, MapPin, Star, Cloud, AlertTriangle, Heart, ChevronDown, LocateFixed } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GridSkeleton } from './LoadingSkeleton';
@@ -29,7 +29,7 @@ const Recommendations = () => {
   const [seasons, setSeasons] = useState([]);
   const [categories, setCategories] = useState([]);
   const [budgets, setBudgets] = useState([]);
-  const [weatherCache, setWeatherCache] = useState({});
+  const weatherCacheRef = useRef({});
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState([]);
   const [weatherType, setWeatherType] = useState('normal');
@@ -325,8 +325,8 @@ const Recommendations = () => {
     setShowFavoritesOnly(false);
   };
 
-  const getWeather = async (city) => {
-    if (weatherCache[city]) return weatherCache[city];
+  const getWeather = useCallback(async (city) => {
+    if (weatherCacheRef.current[city]) return weatherCacheRef.current[city];
     
     const apiCity = cityMap[city] || city;
     
@@ -368,152 +368,12 @@ const Recommendations = () => {
         icon
       };
       
-      setWeatherCache(prev => ({ ...prev, [city]: result }));
+      weatherCacheRef.current[city] = result;
       return result;
     } catch (error) {
       return { weather: 'Unavailable', advice: 'Unknown', icon: '☁️' };
     }
-  };
-
-  const PlaceCard = ({ place }) => {
-    const [weather, setWeather] = useState(null);
-    
-    useEffect(() => {
-      getWeather(place.city).then(setWeather);
-    }, [place.city]);
-    
-    const placeImage = getPlaceImage(place.place);
-    const [showDetails, setShowDetails] = useState(false);
-    
-    // Determine recommendation quality indicator
-    const getRatingStars = (score) => {
-      if (score >= 80) return '★★★★★';
-      if (score >= 70) return '★★★★';
-      if (score >= 60) return '★★★';
-      if (score >= 50) return '★★';
-      return '★';
-    };
-
-    // Only show "Popular" if trending high
-    const showPopularBadge = getTrendingScore(place.place) >= 3;
-    
-    return (
-      <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden`}>
-        <div className={`relative h-48 overflow-hidden ${isDark ? 'bg-gray-900' : 'bg-gray-800'}`}>
-          <img src={placeImage} alt={place.place} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-          <button
-            onClick={() => toggleFavorite(place)}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white transition-all duration-200 group"
-            aria-label={isFavorite(place.place) ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Heart
-              className={`w-5 h-5 transition-all ${
-                isFavorite(place.place)
-                  ? 'fill-red-500 text-red-500'
-                  : 'text-gray-700 group-hover:text-red-500'
-              }`}
-            />
-          </button>
-        </div>
-        
-        <div className="p-5">
-          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-2`}>{place.place}</h3>
-          
-          {/* Quick signals: Rating | Budget | Distance | Popular */}
-          <div className="flex flex-wrap gap-2 mb-3 items-center">
-            <div className={`text-xs font-semibold ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
-              ⭐ {place.rating}
-            </div>
-            {place.budgetLevel && (
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
-                {place.budgetLevel}
-              </span>
-            )}
-            {typeof place.distanceKm === 'number' && (
-              <span className={`text-xs font-semibold ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
-                📍 {place.distanceKm}km
-              </span>
-            )}
-            {showPopularBadge && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                🔥 Popular
-              </span>
-            )}
-          </div>
-          
-          {/* Compact essential info */}
-          <div className="space-y-1.5 mb-3">
-            <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{place.city}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold">{place.category}</span>
-              <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Best: {place.season}</span>
-            </div>
-            {place.tripDays && (
-              <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                ⏱️ {place.tripDays} days
-              </div>
-            )}
-          </div>
-
-          {/* Weather info collapsed under details toggle */}
-          {weather && (
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className={`w-full text-left text-xs p-2 rounded mb-3 transition ${
-                showDetails
-                  ? isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'
-                  : isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {showDetails ? '▼ Weather & Details' : '▶ Weather & Details'}
-            </button>
-          )}
-          
-          {showDetails && weather && (
-            <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-3 mb-3 text-xs space-y-2`}>
-              <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-blue-500" />
-                <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{weather.weather}</span>
-              </div>
-              <div className={`font-medium ${isDark ? 'text-gray-200 bg-blue-900/30' : 'text-gray-700 bg-blue-50'} p-2 rounded`}>
-                {weather.advice}
-              </div>
-              {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
-                <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>
-                  <strong>Why recommended:</strong><br/>{place.scoreBreakdown.slice(0, 2).join(' • ')}
-                </div>
-              )}
-
-              {Array.isArray(place.similarPlaces) && place.similarPlaces.length > 0 && (
-                <div className={`${isDark ? 'text-gray-300' : 'text-gray-600'} text-xs space-y-1`}>
-                  <strong>Similar places:</strong>
-                  <ul className="list-disc list-inside">
-                    {place.similarPlaces.map((similar) => (
-                      <li key={`${similar.place}-${similar.city}`}>{similar.place} • {similar.city}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={() => {
-              trackClick(place);
-              navigate('/checkout');
-            }}
-            className={`w-full py-2.5 rounded-lg font-semibold text-sm transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
-          >
-            View Details
-          </button>
-        </div>
-      </div>
-    );
-  };
+  }, [WEATHER_API_KEY]);
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 to-gray-100'} overflow-x-hidden pb-12`}>
@@ -704,7 +564,12 @@ const Recommendations = () => {
             <RecommendationSection
               title="Recommended for You"
               items={filteredData.slice(0, 6)}
-              PlaceCard={PlaceCard}
+              isDark={isDark}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              isFavorite={isFavorite}
+              onNavigate={() => navigate('/checkout')}
+              getWeather={getWeather}
             />
 
             <RecommendationSection
@@ -712,7 +577,12 @@ const Recommendations = () => {
               items={[...filteredData]
                 .sort((a, b) => getTrendingScore(b.place) - getTrendingScore(a.place))
                 .slice(0, 6)}
-              PlaceCard={PlaceCard}
+              isDark={isDark}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              isFavorite={isFavorite}
+              onNavigate={() => navigate('/checkout')}
+              getWeather={getWeather}
             />
 
             <RecommendationSection
@@ -720,7 +590,12 @@ const Recommendations = () => {
               items={filteredData
                 .filter((p) => String(p.season || '').toLowerCase().includes(getCurrentSeason().toLowerCase()))
                 .slice(0, 6)}
-              PlaceCard={PlaceCard}
+              isDark={isDark}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              isFavorite={isFavorite}
+              onNavigate={() => navigate('/checkout')}
+              getWeather={getWeather}
             />
 
             <RecommendationSection
@@ -729,7 +604,12 @@ const Recommendations = () => {
                 .filter((p) => typeof p.distanceKm === 'number')
                 .sort((a, b) => a.distanceKm - b.distanceKm)
                 .slice(0, 6)}
-              PlaceCard={PlaceCard}
+              isDark={isDark}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              isFavorite={isFavorite}
+              onNavigate={() => navigate('/checkout')}
+              getWeather={getWeather}
             />
           </div>
         )}
@@ -738,7 +618,7 @@ const Recommendations = () => {
   );
 };
 
-const RecommendationSection = ({ title, items, PlaceCard }) => {
+const RecommendationSection = ({ title, items, isDark, favorites, onToggleFavorite, isFavorite, onNavigate, getWeather }) => {
   if (!items || items.length === 0) return null;
 
   return (
@@ -746,10 +626,150 @@ const RecommendationSection = ({ title, items, PlaceCard }) => {
       <h2 className="text-xl font-bold mb-4">{title}</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {items.map((place) => (
-          <PlaceCard key={`${title}-${place.place}`} place={place} />
+          <PlaceCard
+            key={`${title}-${place.place}`}
+            place={place}
+            isDark={isDark}
+            favorites={favorites}
+            onToggleFavorite={onToggleFavorite}
+            isFavorite={isFavorite}
+            onNavigate={onNavigate}
+            getWeather={getWeather}
+          />
         ))}
       </div>
     </section>
+  );
+};
+
+const PlaceCard = ({ place, isDark, favorites, onToggleFavorite, isFavorite, onNavigate, getWeather }) => {
+  const [weather, setWeather] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+
+  useEffect(() => {
+    getWeather(place.city).then(setWeather);
+  }, [place.city, getWeather]);
+
+  const placeImage = getPlaceImage(place.place);
+
+  // Only show "Popular" if trending high
+  const showPopularBadge = getTrendingScore(place.place) >= 3;
+
+  return (
+    <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden`}>
+      <div className={`relative h-48 overflow-hidden ${isDark ? 'bg-gray-900' : 'bg-gray-800'}`}>
+        <img src={placeImage} alt={place.place} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        <button
+          onClick={() => onToggleFavorite(place)}
+          className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white transition-all duration-200 group"
+          aria-label={isFavorite(place.place) ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Heart
+            className={`w-5 h-5 transition-all ${
+              isFavorite(place.place)
+                ? 'fill-red-500 text-red-500'
+                : 'text-gray-700 group-hover:text-red-500'
+            }`}
+          />
+        </button>
+      </div>
+
+      <div className="p-5">
+        <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-2`}>{place.place}</h3>
+
+        {/* Quick signals: Rating | Budget | Distance | Popular */}
+        <div className="flex flex-wrap gap-2 mb-3 items-center">
+          <div className={`text-xs font-semibold ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
+            ⭐ {place.rating}
+          </div>
+          {place.budgetLevel && (
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
+              {place.budgetLevel}
+            </span>
+          )}
+          {typeof place.distanceKm === 'number' && (
+            <span className={`text-xs font-semibold ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
+              📍 {place.distanceKm}km
+            </span>
+          )}
+          {showPopularBadge && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+              🔥 Popular
+            </span>
+          )}
+        </div>
+
+        {/* Compact essential info */}
+        <div className="space-y-1.5 mb-3">
+          <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{place.city}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold">{place.category}</span>
+            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Best: {place.season}</span>
+          </div>
+          {place.tripDays && (
+            <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              ⏱️ {place.tripDays} days
+            </div>
+          )}
+        </div>
+
+        {/* Weather info collapsed under details toggle */}
+        {weather && (
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className={`w-full text-left text-xs p-2 rounded mb-3 transition ${
+              showDetails
+                ? isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'
+                : isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {showDetails ? '▼ Weather & Details' : '▶ Weather & Details'}
+          </button>
+        )}
+
+        {showDetails && weather && (
+          <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-3 mb-3 text-xs space-y-2`}>
+            <div className="flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-blue-500" />
+              <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{weather.weather}</span>
+            </div>
+            <div className={`font-medium ${isDark ? 'text-gray-200 bg-blue-900/30' : 'text-gray-700 bg-blue-50'} p-2 rounded`}>
+              {weather.advice}
+            </div>
+            {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
+              <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                <strong>Why recommended:</strong><br/>{place.scoreBreakdown.slice(0, 2).join(' • ')}
+              </div>
+            )}
+
+            {Array.isArray(place.similarPlaces) && place.similarPlaces.length > 0 && (
+              <div className={`${isDark ? 'text-gray-300' : 'text-gray-600'} text-xs space-y-1`}>
+                <strong>Similar places:</strong>
+                <ul className="list-disc list-inside">
+                  {place.similarPlaces.map((similar) => (
+                    <li key={`${similar.place}-${similar.city}`}>{similar.place} • {similar.city}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={() => {
+            trackClick(place);
+            onNavigate();
+          }}
+          className={`w-full py-2.5 rounded-lg font-semibold text-sm transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+        >
+          View Details
+        </button>
+      </div>
+    </div>
   );
 };
 
