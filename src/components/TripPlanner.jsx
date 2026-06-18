@@ -1,566 +1,641 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import NavBar from './NavBar';
-import { generateItinerary, exportItineraryJSON, exportItineraryICS } from '../utils/itinerary';
-import { getUserProfile } from '../utils/userProfile';
-import { MapPin, Calendar, DollarSign, Heart, Loader2, Save, Download, Clock, MapPinIcon, ChevronDown } from 'lucide-react';
+import {
+  MapPin, Calendar, DollarSign, Loader2, Plus, Trash2,
+  ArrowDown, ChevronDown, AlertCircle, Navigation, Clock, Star
+} from 'lucide-react';
 
-const DATA_CSV = '/recommendation and chatbot/places_dataset.csv';
-const STORAGE_KEY = 'savedItineraries_v1';
-
-// Maps each destination option to a filter keyword matched against city or province in the CSV
-const POPULAR_DESTINATIONS = [
-  { id: 'hunza',       name: 'Hunza Valley',           filter: 'hunza',      description: 'Stunning mountain views' },
-  { id: 'skardu',      name: 'Skardu',                 filter: 'skardu',     description: 'Gateway to glaciers' },
-  { id: 'lahore',      name: 'Lahore',                 filter: 'lahore',     description: 'Cultural heart of Punjab' },
-  { id: 'islamabad',   name: 'Islamabad',              filter: 'islamabad',  description: 'Modern capital city' },
-  { id: 'taxila',      name: 'Taxila',                 filter: 'taxila',     description: 'Ancient Buddhist ruins' },
-  { id: 'swat',        name: 'Swat & Kalam',           filter: 'swat',       description: 'Valley of greenery' },
-  { id: 'abbottabad',  name: 'Abbottabad & Murree',    filter: 'abbottabad', description: 'Hill station paradise' },
-  { id: 'gilgit',      name: 'Gilgit-Baltistan',       filter: 'gilgit',     description: 'Roof of the world' },
-  { id: 'peshawar',    name: 'Peshawar',               filter: 'peshawar',   description: 'Gateway to the Khyber' },
-  { id: 'anywhere',    name: 'Anywhere in Pakistan',   filter: 'anywhere',   description: 'Surprise me!' },
-];
+// ─────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────
+const DATA_CSV = '/places_dataset.csv';
 
 const BUDGET_OPTIONS = [
-  { value: 'low', label: 'Economy', emoji: '💰' },
-  { value: 'medium', label: 'Standard', emoji: '💳' },
-  { value: 'high', label: 'Luxury', emoji: '✨' },
+  { value: 'budget',   label: 'Economy',  emoji: '💰', ratePerNight: 3000  },
+  { value: 'moderate', label: 'Standard', emoji: '💳', ratePerNight: 7000  },
+  { value: 'luxury',   label: 'Luxury',   emoji: '✨', ratePerNight: 18000 },
 ];
 
-const TRAVEL_STYLES = [
-  'Adventure', 'Culture', 'History', 'Nature', 'Family', 'Photography', 'Food', 'Religious'
-];
-
-const parseSimpleCSV = (csv) => {
+// ─────────────────────────────────────────────
+// CSV parser (handles quoted commas)
+// ─────────────────────────────────────────────
+const parseCSV = (csv) => {
   const lines = csv.replace(/\r/g, '').trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0].replace(/^"|"$/g, '').split(',').map(h => h.replace(/^"|"$/g,'').trim());
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
   return lines.slice(1).map(line => {
-    const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^\"]*$)/).map(c => c.replace(/^"|"$/g,'').trim());
+    const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
     const obj = {};
-    headers.forEach((h,i) => obj[h] = cols[i] || '');
+    headers.forEach((h, i) => { obj[h] = cols[i] || ''; });
     return {
-      place: obj.place_name || obj.place || '',
-      city: obj.city || '',
+      id:       obj.place_name || '',
+      name:     obj.place_name || '',
+      city:     obj.city || '',
       province: obj.province || '',
       category: obj.category || '',
-      season: obj.best_season || obj.season || '',
-      rating: parseFloat(obj.rating) || 0,
-      lat: obj.lat ? parseFloat(obj.lat) : null,
-      lon: obj.lon ? parseFloat(obj.lon) : null,
-      budgetLevel: obj.budget_level || obj.budgetLevel || '',
+      season:   obj.best_season || '',
+      rating:   parseFloat(obj.rating) || 0,
+      lat:      obj.lat  ? parseFloat(obj.lat)  : null,
+      lon:      obj.lon  ? parseFloat(obj.lon)  : null,
+      budget:   obj.budget_level || '',
     };
-  });
+  }).filter(p => p.name && p.lat != null && p.lon != null);
 };
 
-const TripPlanner = () => {
-  const [days, setDays] = useState(3);
-  const [budgetLevel, setBudgetLevel] = useState('');
-  const [selectedDestination, setSelectedDestination] = useState('');
-  const [travelStyles, setTravelStyles] = useState([]);
-  const [perDayCapacity, setPerDayCapacity] = useState(3);
-  const [defaultDurationHours, setDefaultDurationHours] = useState(2);
-  const [places, setPlaces] = useState([]);
-  const [itinerary, setItinerary] = useState(null);
-  const [saved, setSaved] = useState([]);
-  const [title, setTitle] = useState('My Trip');
-  const [statusMessage, setStatusMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showDestinationMenu, setShowDestinationMenu] = useState(false);
+// ─────────────────────────────────────────────
+// Haversine distance (km)
+// ─────────────────────────────────────────────
+const toRad = v => (v * Math.PI) / 180;
+const haversineKm = (a, b) => {
+  if (!a || !b || a.lat == null || b.lat == null) return 0;
+  const R = 6371;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+};
 
+// ─────────────────────────────────────────────
+// Searchable Place Dropdown
+// ─────────────────────────────────────────────
+const PlaceDropdown = ({ places, value, onChange, placeholder = 'Select a destination…', excludeIds = [], showMyLocation = false }) => {
+  const [open, setOpen]           = useState(false);
+  const [query, setQuery]         = useState('');
+  const [locating, setLocating]   = useState(false);
+  const [locError, setLocError]   = useState('');
+  const ref                       = useRef(null);
+
+  const selected = places.find(p => p.id === value);
+
+  const filtered = places
+    .filter(p => !excludeIds.includes(p.id) || p.id === value)
+    .filter(p =>
+      !query ||
+      p.name.toLowerCase().includes(query.toLowerCase()) ||
+      p.city.toLowerCase().includes(query.toLowerCase()) ||
+      p.province.toLowerCase().includes(query.toLowerCase())
+    );
+
+  // Close on outside click
   useEffect(() => {
-    fetch(DATA_CSV).then(r => r.text()).then(txt => setPlaces(parseSimpleCSV(txt))).catch(()=>setPlaces([]));
-    const s = localStorage.getItem(STORAGE_KEY);
-    setSaved(s ? JSON.parse(s) : []);
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const generate = () => {
-    if (!places.length) {
-      setStatusMessage('Place data is still loading, please try again in a moment.');
+  const select = (place) => {
+    onChange(place.id);
+    setQuery('');
+    setLocError('');
+    setOpen(false);
+  };
+
+  // Find nearest dataset place to given coords
+  const findNearest = (lat, lon) => {
+    let nearest = null;
+    let minDist = Infinity;
+    places.forEach(p => {
+      if (p.lat == null) return;
+      const d = Math.sqrt((p.lat - lat) ** 2 + (p.lon - lon) ** 2);
+      if (d < minDist) { minDist = d; nearest = p; }
+    });
+    return nearest;
+  };
+
+  const useMyLocation = (e) => {
+    e.stopPropagation();
+    setLocError('');
+    if (!navigator.geolocation) {
+      setLocError('Geolocation is not supported by your browser.');
       return;
     }
-    setIsLoading(true);
-    setStatusMessage('');
-    setTimeout(() => {
-      const profile = getUserProfile();
-      const destObj = POPULAR_DESTINATIONS.find(d => d.id === selectedDestination);
-      const destFilter = destObj ? destObj.filter : 'anywhere';
-      const ctx = { currentSeason: '' };
-      const opts = {
-        days,
-        budgetLevel,
-        travelStyle: travelStyles.join(','),
-        perDayCapacity,
-        defaultDurationHours,
-        destinationFilter: destFilter,
-      };
-      const result = generateItinerary(opts, places, profile, ctx);
-      setItinerary(result);
-
-      const totalDests = result.days.reduce((sum, d) => sum + d.items.length, 0);
-      if (totalDests === 0) {
-        setStatusMessage('No places could be matched. Try broadening your filters.');
-      } else if (result.meta && result.meta.fallbackUsed) {
-        setStatusMessage('Some filters had no exact matches — showing the best available places instead.');
-      } else {
-        setStatusMessage('');
-      }
-      setIsLoading(false);
-    }, 1200);
-  };
-
-  const saveItinerary = () => {
-    if (!itinerary) return;
-    const next = [{ id: `itin-${Date.now()}`, title: title || 'Untitled', createdAt: new Date().toISOString(), itinerary }, ...saved];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setSaved(next);
-  };
-
-  const exportJSON = () => {
-    if (!itinerary) return;
-    exportItineraryJSON(itinerary, `${(title||'itinerary').replace(/\s+/g,'_')}.json`);
-  };
-
-  const exportICS = () => {
-    if (!itinerary) return;
-    exportItineraryICS(itinerary, `${(title||'itinerary').replace(/\s+/g,'_')}.ics`);
-  };
-
-  const toggleTravelStyle = (style) => {
-    setTravelStyles(prev => 
-      prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const nearest = findNearest(pos.coords.latitude, pos.coords.longitude);
+        setLocating(false);
+        if (nearest) {
+          onChange(nearest.id);
+          setOpen(false);
+        } else {
+          setLocError('Could not match your location to a dataset destination.');
+        }
+      },
+      () => {
+        setLocating(false);
+        setLocError('Location access denied. Please select manually.');
+      },
+      { timeout: 8000 }
     );
   };
 
   return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full px-3 py-2.5 bg-white border-2 border-gray-200 rounded-lg text-left flex items-center justify-between hover:border-emerald-400 focus:border-emerald-500 focus:outline-none transition text-sm"
+      >
+        <span className={selected ? 'text-gray-900 font-medium truncate pr-2' : 'text-gray-400'}>
+          {selected ? (
+            <>
+              {selected.name}
+              <span className="ml-2 text-xs text-gray-400 font-normal">{selected.city}, {selected.province}</span>
+            </>
+          ) : placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {locError && (
+        <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3 flex-shrink-0" />{locError}
+        </p>
+      )}
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-emerald-200 rounded-lg shadow-xl z-50 max-h-72 flex flex-col">
+          {/* Search input */}
+          <div className="p-2 border-b border-gray-100">
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search destinations…"
+              className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:border-emerald-400 focus:outline-none"
+            />
+          </div>
+
+          {/* Use my location button */}
+          {showMyLocation && (
+            <button
+              type="button"
+              onClick={useMyLocation}
+              disabled={locating}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-b border-emerald-100 transition disabled:opacity-60"
+            >
+              {locating ? (
+                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+              ) : (
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+              )}
+              {locating ? 'Detecting your location…' : 'Use my current location'}
+            </button>
+          )}
+
+          {/* Options list */}
+          <div className="overflow-y-auto flex-1">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-gray-400 italic">No destinations found.</p>
+            ) : (
+              filtered.map(place => (
+                <button
+                  key={place.id}
+                  type="button"
+                  onClick={() => select(place)}
+                  className={`w-full text-left px-4 py-2.5 hover:bg-emerald-50 transition border-b border-gray-50 last:border-b-0 ${value === place.id ? 'bg-emerald-100' : ''}`}
+                >
+                  <div className="font-semibold text-gray-900 text-sm">{place.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{place.city} · {place.province} · <span className="text-teal-600">{place.category}</span></div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Stop Row
+// ─────────────────────────────────────────────
+const StopRow = ({ index, stop, places, allSelectedIds, onChange, onRemove, canRemove }) => (
+  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+    {/* Connector number */}
+    <div className="flex flex-col items-center flex-shrink-0 pt-1">
+      <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow">
+        {index + 1}
+      </div>
+    </div>
+
+    {/* Fields */}
+    <div className="flex-1 flex flex-col sm:flex-row gap-3 min-w-0">
+      {/* Destination — takes remaining space */}
+      <div className="flex-1 min-w-0">
+        <label className="block text-xs font-semibold text-gray-500 mb-1">Destination</label>
+        <PlaceDropdown
+          places={places}
+          value={stop.placeId}
+          onChange={id => onChange(index, 'placeId', id)}
+          placeholder="Choose destination…"
+          excludeIds={allSelectedIds.filter(id => id !== stop.placeId)}
+        />
+      </div>
+
+      {/* Nights — fixed width so +/− never overflow */}
+      <div className="sm:w-36 flex-shrink-0">
+        <label className="block text-xs font-semibold text-gray-500 mb-1">Nights</label>
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={() => onChange(index, 'nights', Math.max(1, stop.nights - 1))}
+            className="w-8 h-9 rounded-l-lg bg-white border border-gray-200 hover:bg-gray-100 active:bg-gray-200 transition font-bold text-gray-600 flex items-center justify-center flex-shrink-0 text-lg leading-none"
+          >−</button>
+          <input
+            type="number"
+            min={1}
+            value={stop.nights}
+            onChange={e => onChange(index, 'nights', Math.max(1, Number(e.target.value)))}
+            className="w-12 h-9 text-center font-bold text-emerald-600 border-t border-b border-gray-200 focus:border-emerald-400 focus:outline-none text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(index, 'nights', stop.nights + 1)}
+            className="w-8 h-9 rounded-r-lg bg-white border border-gray-200 hover:bg-gray-100 active:bg-gray-200 transition font-bold text-gray-600 flex items-center justify-center flex-shrink-0 text-lg leading-none"
+          >+</button>
+        </div>
+      </div>
+    </div>
+
+    {/* Remove */}
+    {canRemove && (
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="flex-shrink-0 mt-1 p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition"
+        title="Remove stop"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    )}
+  </div>
+);
+
+// ─────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────
+const TripPlanner = () => {
+  const [places, setPlaces]             = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [startId, setStartId]           = useState('');
+  const [stops, setStops]               = useState([{ placeId: '', nights: 2 }]);
+  const [budgetLevel, setBudgetLevel]   = useState('moderate');
+  const [tripName, setTripName]         = useState('');
+  const [errors, setErrors]             = useState([]);
+  const [result, setResult]             = useState(null);
+
+  // Load dataset
+  useEffect(() => {
+    fetch(DATA_CSV)
+      .then(r => r.text())
+      .then(txt => { setPlaces(parseCSV(txt)); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // ── Stop helpers ──────────────────────────
+  const addStop = () => setStops(prev => [...prev, { placeId: '', nights: 2 }]);
+
+  const removeStop = (idx) => setStops(prev => prev.filter((_, i) => i !== idx));
+
+  const updateStop = (idx, field, val) =>
+    setStops(prev => prev.map((s, i) => i === idx ? { ...s, [field]: val } : s));
+
+  // All selected IDs (start + stops) for duplicate-prevention
+  const allSelectedIds = [startId, ...stops.map(s => s.placeId)].filter(Boolean);
+
+  // ── Route calculation ─────────────────────
+  const buildRoute = () => {
+    const validationErrors = [];
+
+    if (!startId) validationErrors.push('Please select a starting location.');
+
+    const filledStops = stops.filter(s => s.placeId);
+    if (filledStops.length === 0) validationErrors.push('Add at least one destination stop.');
+
+    stops.forEach((s, i) => {
+      if (!s.placeId) validationErrors.push(`Stop ${i + 1}: no destination selected.`);
+    });
+
+    // Duplicate detection
+    const ids = [startId, ...stops.map(s => s.placeId)].filter(Boolean);
+    const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+    if (dupes.length > 0) {
+      const dupeNames = [...new Set(dupes)].map(id => places.find(p => p.id === id)?.name).filter(Boolean);
+      validationErrors.push(`Duplicate locations: ${dupeNames.join(', ')}`);
+    }
+
+    if (validationErrors.length > 0) { setErrors(validationErrors); setResult(null); return; }
+
+    setErrors([]);
+
+    // Build ordered location objects
+    const startPlace = places.find(p => p.id === startId);
+    const stopPlaces = stops.map(s => ({
+      ...places.find(p => p.id === s.placeId),
+      nights: s.nights,
+    }));
+
+    // Leg distances
+    const allPoints = [startPlace, ...stopPlaces];
+    const legs = [];
+    let totalDistanceKm = 0;
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const from = allPoints[i];
+      const to   = allPoints[i + 1];
+      const km   = Math.round(haversineKm(from, to));
+      legs.push({ from: from.name, to: to.name, km });
+      totalDistanceKm += km;
+    }
+
+    const totalNights = stopPlaces.reduce((sum, s) => sum + (s.nights || 0), 0);
+    const totalDays   = totalNights + 1;   // travel day
+    const budgetRate  = BUDGET_OPTIONS.find(b => b.value === budgetLevel)?.ratePerNight || 7000;
+    const totalCost   = totalNights * budgetRate;
+
+    // Route string e.g. "Islamabad → Hunza Valley → Swat Valley"
+    const routeString = [startPlace, ...stopPlaces].map(p => p.name).join(' → ');
+
+    setResult({
+      routeString,
+      startPlace,
+      stopPlaces,
+      legs,
+      totalDistanceKm: Math.round(totalDistanceKm),
+      totalNights,
+      totalDays,
+      totalCost,
+      budgetLevel,
+    });
+  };
+
+  // ─────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────
+  return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <NavBar />
-      
-      {/* Hero Section */}
-      <div className="relative h-80 bg-gradient-to-r from-emerald-600 to-teal-600 overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-cover bg-center" style={{
-          backgroundImage: 'url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop)',
-        }}></div>
+
+      {/* Hero */}
+      <div className="relative h-72 bg-gradient-to-r from-emerald-600 to-teal-600 overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-25 bg-cover bg-center"
+          style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop)' }}
+        />
         <div className="relative z-10 h-full flex flex-col justify-center items-center text-center px-4">
-          <h1 className="text-5xl font-bold text-white mb-3 drop-shadow-lg">Plan Your Perfect Pakistan Journey</h1>
-          <p className="text-xl text-emerald-50 drop-shadow-md max-w-2xl">
-            AI-powered itinerary generation based on budget, interests and trip duration.
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3 drop-shadow-lg">
+            Custom Route Trip Planner
+          </h1>
+          <p className="text-lg text-emerald-50 drop-shadow-md max-w-2xl">
+            Build your own route across Pakistan's best destinations.
           </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        {/* Form Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Left Column: Form */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-2">
-                <Calendar className="w-6 h-6 text-emerald-600" />
-                Customize Your Adventure
-              </h2>
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        {loading ? (
+          <div className="flex items-center justify-center py-24 gap-3 text-gray-500">
+            <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+            Loading destinations…
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
 
-              {/* Destination Selection */}
-              <div className="mb-8">
-                <label className="block text-sm font-semibold text-gray-700 mb-4">Select Destination</label>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowDestinationMenu(!showDestinationMenu)}
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg text-left flex items-center justify-between hover:border-emerald-400 transition"
-                  >
-                  <span className="text-gray-700 font-medium">
-                      {selectedDestination 
-                        ? POPULAR_DESTINATIONS.find(d => d.id === selectedDestination)?.name 
-                        : 'Choose a destination...'}
-                    </span>
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  </button>
-                  
-                  {showDestinationMenu && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-emerald-200 rounded-lg shadow-xl z-50">
-                      {POPULAR_DESTINATIONS.map(dest => (
-                        <button
-                          key={dest.id}
-                          onClick={() => {
-                            setSelectedDestination(dest.id);
-                            setShowDestinationMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-3 hover:bg-emerald-50 transition border-b last:border-b-0 ${
-                            selectedDestination === dest.id ? 'bg-emerald-100' : ''
-                          }`}
-                        >
-                          <div className="font-semibold text-gray-900">{dest.name}</div>
-                          <div className="text-sm text-gray-500">{dest.description}</div>
-                        </button>
-                      ))}
+            {/* ── Left: Route Builder ── */}
+            <div className="lg:col-span-3 space-y-6">
+
+              {/* Trip Name */}
+              <div className="bg-white rounded-2xl shadow-md p-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Trip Name (optional)</label>
+                <input
+                  type="text"
+                  value={tripName}
+                  onChange={e => setTripName(e.target.value)}
+                  placeholder="e.g., Northern Pakistan Adventure"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none transition text-sm"
+                />
+              </div>
+
+              {/* Starting Location */}
+              <div className="bg-white rounded-2xl shadow-md p-6">
+                <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-emerald-600" />
+                  Starting Location
+                </h2>
+                <PlaceDropdown
+                  places={places}
+                  value={startId}
+                  onChange={setStartId}
+                  placeholder="Where does your journey begin?"
+                  excludeIds={allSelectedIds.filter(id => id !== startId)}
+                  showMyLocation={true}
+                />
+                {startId && (() => {
+                  const p = places.find(x => x.id === startId);
+                  return p ? (
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                      <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">{p.category}</span>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full">{p.city}, {p.province}</span>
+                      {p.rating > 0 && <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-full flex items-center gap-1"><Star className="w-3 h-3" />{p.rating}</span>}
                     </div>
-                  )}
-                </div>
+                  ) : null;
+                })()}
               </div>
 
-              {/* Trip Duration */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Number of Days</label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setDays(Math.max(1, days - 1))}
-                      className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      value={days}
-                      onChange={(e) => setDays(Number(e.target.value))}
-                      className="flex-1 text-center text-xl font-bold text-emerald-600 border-2 border-gray-200 rounded-lg p-2"
-                    />
-                    <button
-                      onClick={() => setDays(days + 1)}
-                      className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
-                    >
-                      +
-                    </button>
-                  </div>
+              {/* Stops */}
+              <div className="bg-white rounded-2xl shadow-md p-6">
+                <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Navigation className="w-5 h-5 text-emerald-600" />
+                  Destination Stops
+                </h2>
+
+                <div className="space-y-3">
+                  {stops.map((stop, idx) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && (
+                        <div className="flex justify-center">
+                          <ArrowDown className="w-4 h-4 text-emerald-400" />
+                        </div>
+                      )}
+                      <StopRow
+                        index={idx}
+                        stop={stop}
+                        places={places}
+                        allSelectedIds={allSelectedIds}
+                        onChange={updateStop}
+                        onRemove={removeStop}
+                        canRemove={stops.length > 1}
+                      />
+                    </React.Fragment>
+                  ))}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Trip Name</label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g., Northern Adventure"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none transition"
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={addStop}
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-emerald-300 rounded-xl text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50 transition text-sm font-semibold"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Another Stop
+                </button>
               </div>
 
-              {/* Budget Selection */}
-              <div className="mb-8">
-                <label className="block text-sm font-semibold text-gray-700 mb-4">Budget Type</label>
-                <div className="grid grid-cols-3 gap-4">
-                  {BUDGET_OPTIONS.map(option => (
+              {/* Budget */}
+              <div className="bg-white rounded-2xl shadow-md p-6">
+                <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
+                  Budget Level
+                </h2>
+                <div className="grid grid-cols-3 gap-3">
+                  {BUDGET_OPTIONS.map(opt => (
                     <button
-                      key={option.value}
-                      onClick={() => setBudgetLevel(option.value)}
-                      className={`p-4 rounded-lg border-2 transition font-semibold text-center ${
-                        budgetLevel === option.value
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setBudgetLevel(opt.value)}
+                      className={`p-4 rounded-xl border-2 transition font-semibold text-center ${
+                        budgetLevel === opt.value
                           ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                          : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-emerald-300'
+                          : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-emerald-300'
                       }`}
                     >
-                      <div className="text-2xl mb-2">{option.emoji}</div>
-                      {option.label}
+                      <div className="text-2xl mb-1">{opt.emoji}</div>
+                      <div className="text-sm">{opt.label}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">~PKR {opt.ratePerNight.toLocaleString()}/night</div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Travel Styles Multi-select */}
-              <div className="mb-8">
-                <label className="block text-sm font-semibold text-gray-700 mb-4">Travel Interests (Select Multiple)</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {TRAVEL_STYLES.map(style => (
-                    <button
-                      key={style}
-                      onClick={() => toggleTravelStyle(style)}
-                      className={`px-4 py-2 rounded-full font-medium transition border-2 ${
-                        travelStyles.includes(style)
-                          ? 'border-emerald-600 bg-emerald-600 text-white'
-                          : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-emerald-400'
-                      }`}
-                    >
-                      {style}
-                    </button>
+              {/* Validation errors */}
+              {errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-1">
+                  {errors.map((e, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm text-red-700">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      {e}
+                    </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Advanced Settings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 pb-8 border-b border-gray-200">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Places per Day</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={perDayCapacity}
-                    onChange={(e) => setPerDayCapacity(Number(e.target.value))}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Default Duration (Hours)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={defaultDurationHours}
-                    onChange={(e) => setDefaultDurationHours(Number(e.target.value))}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {/* Status Message */}
-              {statusMessage && (
-                <div className="mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800">
-                  {statusMessage}
                 </div>
               )}
 
-              {/* Generate Button */}
+              {/* Calculate button */}
               <button
-                onClick={generate}
-                disabled={isLoading}
-                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-70 text-white font-bold text-lg rounded-lg transition duration-300 flex items-center justify-center gap-2 shadow-lg"
+                type="button"
+                onClick={buildRoute}
+                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-lg rounded-xl transition shadow-lg"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Rahbar AI is planning your journey...
-                  </>
-                ) : (
-                  <>
-                    Generate Smart Itinerary
-                  </>
-                )}
+                Calculate Route & Cost
               </button>
             </div>
-          </div>
 
-          {/* Right Column: Map Placeholder & Quick Stats */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Map Container */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden h-96">
-              <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-                  <p className="text-gray-700 font-semibold">Map Preview</p>
-                  <p className="text-sm text-gray-500 mt-2">Generate an itinerary to see</p>
-                  <p className="text-sm text-gray-500">the route on the map</p>
+            {/* ── Right: Summary Card ── */}
+            <div className="lg:col-span-2 space-y-5">
+
+              {/* Dataset info */}
+              <div className="bg-white rounded-2xl shadow-md p-5">
+                <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  Available Destinations
+                </h3>
+                <p className="text-3xl font-bold text-emerald-600">{places.length}</p>
+                <p className="text-xs text-gray-500 mt-1">tourism destinations from dataset</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {[...new Set(places.map(p => p.province))].map(prov => (
+                    <span key={prov} className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-full border border-emerald-200">
+                      {prov}
+                    </span>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Quick Info */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Heart className="w-5 h-5 text-emerald-600" />
-                Your Preferences
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold">📍</span>
-                  <span className="text-gray-700">{selectedDestination ? POPULAR_DESTINATIONS.find(d => d.id === selectedDestination)?.name : 'No destination selected'}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold">⏱️</span>
-                  <span className="text-gray-700">{days} day{days !== 1 ? 's' : ''}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold">💰</span>
-                  <span className="text-gray-700">{budgetLevel ? BUDGET_OPTIONS.find(b => b.value === budgetLevel)?.label : 'Any budget'}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold">🎯</span>
-                  <span className="text-gray-700">{travelStyles.length > 0 ? travelStyles.join(', ') : 'No interests selected'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              {/* Route summary (shown after calculate) */}
+              {result ? (
+                <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white">
+                  <h3 className="font-bold text-lg mb-1">
+                    {tripName || 'Trip Summary'}
+                  </h3>
 
-        {/* Results Section */}
-        {itinerary && (
-          <div className="mt-16">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-2">
-              <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <Calendar className="w-8 h-8 text-emerald-600" />
-                {title || 'Your Personalized Itinerary'}
-              </h2>
-              {itinerary.meta && itinerary.meta.destination && itinerary.meta.destination !== 'anywhere' && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {POPULAR_DESTINATIONS.find(d => d.filter === itinerary.meta.destination)?.name || itinerary.meta.destination}
-                </span>
+                  {/* Route string */}
+                  <div className="mt-4 mb-5 bg-white/10 rounded-xl p-3 text-sm font-semibold leading-relaxed">
+                    <p className="text-emerald-100 text-xs uppercase tracking-wide mb-1.5">Route</p>
+                    {result.routeString}
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <p className="text-emerald-200 text-xs uppercase tracking-wide">Total Stops</p>
+                      <p className="text-3xl font-bold">{result.stopPlaces.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-200 text-xs uppercase tracking-wide">Total Distance</p>
+                      <p className="text-3xl font-bold">{result.totalDistanceKm} <span className="text-base font-semibold">km</span></p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-200 text-xs uppercase tracking-wide">Total Days</p>
+                      <p className="text-3xl font-bold">{result.totalDays}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-200 text-xs uppercase tracking-wide">Est. Cost</p>
+                      <p className="text-2xl font-bold">PKR {result.totalCost.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Leg breakdown */}
+                  <div>
+                    <p className="text-emerald-200 text-xs uppercase tracking-wide mb-2">Leg Distances</p>
+                    <div className="space-y-1.5">
+                      {result.legs.map((leg, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm bg-white/10 rounded-lg px-3 py-2">
+                          <span className="truncate pr-2">{leg.from} → {leg.to}</span>
+                          <span className="font-bold flex-shrink-0">{leg.km} km</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-md p-6 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center min-h-48 text-center gap-3">
+                  <Navigation className="w-10 h-10 text-gray-300" />
+                  <p className="text-gray-400 text-sm">Build your route and click<br /><strong>Calculate Route & Cost</strong> to see the summary.</p>
+                </div>
+              )}
+
+              {/* Stop details (shown after calculate) */}
+              {result && (
+                <div className="bg-white rounded-2xl shadow-md p-5 space-y-3">
+                  <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-emerald-600" />
+                    Stop Details
+                  </h3>
+                  {result.stopPlaces.map((stop, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm">{stop.name}</p>
+                        <p className="text-xs text-gray-500">{stop.city}, {stop.province}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          <span className="px-2 py-0.5 bg-teal-50 text-teal-700 text-xs rounded-full">{stop.category}</span>
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-full flex items-center gap-1">
+                            <Clock className="w-3 h-3" />{stop.nights} night{stop.nights !== 1 ? 's' : ''}
+                          </span>
+                          {stop.rating > 0 && (
+                            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full flex items-center gap-1">
+                              <Star className="w-3 h-3" />{stop.rating}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-            <p className="text-gray-500 mb-8 text-sm">
-              Generated by Rahbar AI &nbsp;•&nbsp; {itinerary.days.length} day{itinerary.days.length !== 1 ? 's' : ''} &nbsp;•&nbsp; {itinerary.days.reduce((sum, d) => sum + d.items.length, 0)} destinations
-            </p>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Itinerary Day Cards */}
-              <div className="lg:col-span-2 space-y-6">
-                {itinerary.days.map((d) => (
-                  <div key={d.day} className="bg-white rounded-xl shadow-md hover:shadow-lg transition overflow-hidden border-l-4 border-emerald-600">
-                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100 flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-xl text-gray-900">Day {d.day}</h3>
-                        <p className="text-sm text-gray-500 mt-0.5">{d.items.length} stop{d.items.length !== 1 ? 's' : ''}</p>
-                      </div>
-                      <span className="text-sm font-medium text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
-                        ~{d.items.reduce((s, i) => s + (i.estDurationHours || 0), 0)}h total
-                      </span>
-                    </div>
-
-                    {d.items.length === 0 ? (
-                      <p className="px-6 py-4 text-gray-400 text-sm italic">No places assigned to this day.</p>
-                    ) : (
-                      <div className="divide-y divide-gray-100">
-                        {d.items.map((it, idx) => (
-                          <div key={idx} className="flex gap-4 px-6 py-5">
-                            {/* Stop number + connector */}
-                            <div className="flex flex-col items-center flex-shrink-0">
-                              <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow">
-                                {idx + 1}
-                              </div>
-                              {idx < d.items.length - 1 && (
-                                <div className="w-0.5 flex-1 bg-emerald-200 mt-2 min-h-6" />
-                              )}
-                            </div>
-
-                            {/* Place details */}
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-gray-900 text-base leading-snug">{it.place}</h4>
-
-                              {/* Location */}
-                              <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                                {[it.city, it.province].filter(Boolean).join(', ')}
-                              </p>
-
-                              {/* Category badge */}
-                              {it.category && (
-                                <span className="inline-block mt-2 px-2.5 py-0.5 bg-teal-50 text-teal-700 text-xs font-medium rounded-full border border-teal-200">
-                                  {it.category}
-                                </span>
-                              )}
-
-                              {/* Meta row: duration, rating, season */}
-                              <div className="flex flex-wrap items-center gap-3 mt-2.5 text-xs text-gray-500">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  {it.estDurationHours}h visit
-                                </span>
-                                {it.rating > 0 && (
-                                  <span className="flex items-center gap-1 text-amber-600 font-medium">
-                                    ⭐ {Number(it.rating).toFixed(1)}
-                                  </span>
-                                )}
-                                {it.season && (
-                                  <span className="flex items-center gap-1">
-                                    🗓 Best in: {it.season}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Right Sidebar */}
-              <div className="space-y-4">
-                {/* Summary Card */}
-                <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl shadow-lg p-6 text-white">
-                  <h3 className="font-bold text-lg mb-5">Trip Summary</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Total Days</p>
-                      <p className="text-3xl font-bold">{itinerary.days.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Total Destinations</p>
-                      <p className="text-3xl font-bold">{itinerary.days.reduce((sum, d) => sum + d.items.length, 0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Estimated Duration</p>
-                      <p className="text-3xl font-bold">
-                        {itinerary.days.reduce((sum, d) => sum + d.items.reduce((s, i) => s + (i.estDurationHours || 0), 0), 0)}h
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-100 text-xs uppercase tracking-wide">Budget</p>
-                      <p className="text-lg font-semibold capitalize">{budgetLevel ? BUDGET_OPTIONS.find(b => b.value === budgetLevel)?.label : 'Any'}</p>
-                    </div>
-                    {travelStyles.length > 0 && (
-                      <div>
-                        <p className="text-emerald-100 text-xs uppercase tracking-wide">Interests</p>
-                        <p className="text-sm font-medium mt-1">{travelStyles.join(', ')}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="bg-white rounded-xl shadow-md p-4 space-y-3">
-                  <button
-                    onClick={saveItinerary}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save Itinerary
-                  </button>
-                  <button
-                    onClick={exportJSON}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-lg transition"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export as JSON
-                  </button>
-                  <button
-                    onClick={exportICS}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export as Calendar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Saved Itineraries Section */}
-        {saved.length > 0 && (
-          <div className="mt-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-              <Heart className="w-8 h-8 text-emerald-600" />
-              Your Saved Adventures
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {saved.map(s => (
-                <div key={s.id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition overflow-hidden border-t-4 border-emerald-600">
-                  <div className="p-6">
-                    <h3 className="font-bold text-lg text-gray-900 mb-2">{s.title}</h3>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Saved {new Date(s.createdAt).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-4">{s.itinerary.days.length} days • {s.itinerary.days.reduce((sum, d) => sum + d.items.length, 0)} destinations</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => exportItineraryJSON(s.itinerary, `${s.title.replace(/\s+/g,'_')}.json`)}
-                        className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition text-sm"
-                      >
-                        JSON
-                      </button>
-                      <button
-                        onClick={() => exportItineraryICS(s.itinerary, `${s.title.replace(/\s+/g,'_')}.ics`)}
-                        className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition text-sm"
-                      >
-                        ICS
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>
