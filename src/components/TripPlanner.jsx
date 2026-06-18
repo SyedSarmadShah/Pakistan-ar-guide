@@ -4,7 +4,7 @@ import { generateItinerary, exportItineraryJSON, exportItineraryICS } from '../u
 import { getUserProfile } from '../utils/userProfile';
 import { MapPin, Calendar, DollarSign, Heart, Loader2, Save, Download, Clock, MapPinIcon, ChevronDown } from 'lucide-react';
 
-const DATA_CSV = '/recommendation and chatbot/places_dataset.csv';
+const DATA_CSV = '/places_dataset.csv';
 const STORAGE_KEY = 'savedItineraries_v1';
 
 // Maps each destination option to a filter keyword matched against city or province in the CSV

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, Moon, Sun, Heart, LogOut, MessageSquare } from 'lucide-react';
+import { Menu, X, Moon, Sun, Heart, LogOut, MessageSquare, Camera } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useAuth } from '../context/AuthContext';
@@ -83,6 +83,7 @@ const NavBar = () => {
     { label: 'Explore Pakistan', path: '/recommendations' },
     { label: 'Trip Planner', path: '/planner' },
     { label: 'Packages', path: '/checkout' },
+    { label: 'AR Guide', path: '/ar' },
   ];
 
   const isActive = (path) => location.pathname === path;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bot, X, Sparkles, Send, HelpCircle, ChevronRight, ChevronLeft, Compass, Info, MessageSquare } from 'lucide-react';
+import { Bot, X, Send, ChevronRight, ChevronLeft, Compass, Info } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useAuth } from '../context/AuthContext';
 
