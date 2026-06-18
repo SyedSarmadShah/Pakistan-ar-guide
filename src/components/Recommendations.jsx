@@ -228,6 +228,8 @@ const Recommendations = () => {
   };
 
   const applyFilters = async () => {
+    // Don't run until data is loaded
+    if (tourismData.length === 0) return;
     try {
     let filtered = [...tourismData];
     
