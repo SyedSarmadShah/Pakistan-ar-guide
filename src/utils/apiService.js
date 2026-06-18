@@ -45,11 +45,17 @@ export const fetchRecommendations = async ({ places, userProfile, context }) => 
   };
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
     const response = await fetch('/api/recommendations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestPayload),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error('Backend unavailable');
@@ -60,10 +66,12 @@ export const fetchRecommendations = async ({ places, userProfile, context }) => 
       return { data: data.recommendations };
     }
   } catch (error) {
-    const ranked = rankPlaces(places, userProfile, context);
-    localStorage.setItem(RECOMMENDATION_CACHE_KEY, JSON.stringify(ranked));
-    return { data: ranked };
+    // Backend not running or timed out — fall back to local ranking
   }
+
+  const ranked = rankPlaces(places, userProfile, context);
+  localStorage.setItem(RECOMMENDATION_CACHE_KEY, JSON.stringify(ranked));
+  return { data: ranked };
 };
 
 export const getStoredUserEvents = () => {

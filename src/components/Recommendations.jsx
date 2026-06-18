@@ -144,7 +144,7 @@ const Recommendations = () => {
   const loadTourismData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/recommendation%20and%20chatbot/places_dataset.csv');
+      const response = await fetch('/places_dataset.csv');
       const csvText = await response.text();
       const parsed = parseCSV(csvText);
       setTourismData(parsed);
@@ -228,6 +228,7 @@ const Recommendations = () => {
   };
 
   const applyFilters = async () => {
+    try {
     let filtered = [...tourismData];
     
     if (searchQuery) {
@@ -272,19 +273,39 @@ const Recommendations = () => {
     };
 
     const userProfile = getUserProfile();
-    const { data: ranked } = await fetchRecommendations({ places: filtered, userProfile, context: contextPayload });
+
+    let ranked = filtered;
+    try {
+      const result = await fetchRecommendations({ places: filtered, userProfile, context: contextPayload });
+      if (result && Array.isArray(result.data) && result.data.length > 0) {
+        ranked = result.data;
+      } else {
+        // Fallback: use the filtered list as-is if ranking returned nothing
+        ranked = filtered;
+      }
+    } catch (err) {
+      console.warn('fetchRecommendations failed, using unranked data:', err);
+      ranked = filtered;
+    }
+
     setFilteredData(ranked);
 
     // After ranking, batch-fetch Open-Meteo weather for every visible place.
     // We fire this in the background so the cards render immediately and
     // weather data fills in progressively.
-    batchFetchWeather(ranked, cityCoordinates).then((map) => {
-      const plain = {};
-      map.forEach((weather, placeName) => {
-        if (weather) plain[placeName] = weather;
-      });
-      setWeatherMap(plain);
-    });
+    if (ranked.length > 0) {
+      batchFetchWeather(ranked, cityCoordinates).then((map) => {
+        const plain = {};
+        map.forEach((weather, placeName) => {
+          if (weather) plain[placeName] = weather;
+        });
+        setWeatherMap(plain);
+      }).catch(() => {});
+    }
+    } catch (outerErr) {
+      console.error('applyFilters error:', outerErr);
+      setFilteredData(tourismData);
+    }
   };
 
   const initUserContext = async () => {
