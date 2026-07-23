@@ -253,7 +253,7 @@ Try asking:
               className="text-white/80 hover:text-white p-1 hover:bg-white/10 rounded-full transition"
               aria-label="Close Assistant Panel"
             >
-              <X className="w-4.5 h-4.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -267,7 +267,7 @@ Try asking:
                 </span>
                 <button 
                   onClick={endTour}
-                  className="text-red-500 hover:text-red-650 text-xs font-semibold flex items-center gap-0.5"
+                  className="text-red-500 hover:text-red-600 text-xs font-semibold flex items-center gap-0.5"
                 >
                   <X className="w-3.5 h-3.5" /> End Tour
                 </button>
@@ -280,7 +280,7 @@ Try asking:
                   <Bot className="w-6 h-6" />
                 </div>
                 <h4 className="font-bold text-base mb-2">{activeStep.title}</h4>
-                <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-650'}`}>
+                <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                   {activeStep.description}
                 </p>
               </div>
@@ -288,7 +288,7 @@ Try asking:
               {/* Progress */}
               <div className="w-full bg-gray-200 dark:bg-gray-800 h-1.5 rounded-full mb-6 overflow-hidden">
                 <div 
-                  className="bg-emerald-650 h-full transition-all duration-300"
+                  className="bg-emerald-600 h-full transition-all duration-300"
                   style={{ width: `${((tourIndex + 1) / TOUR_STEPS.length) * 100}%` }}
                 ></div>
               </div>
@@ -302,7 +302,7 @@ Try asking:
                     tourIndex === 0 
                       ? 'opacity-40 cursor-not-allowed border-gray-300 text-gray-400 dark:border-gray-800' 
                       : isDark
-                      ? 'border-gray-750 text-gray-350 hover:bg-gray-800'
+                      ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
                       : 'border-gray-200 text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -322,11 +322,11 @@ Try asking:
             <>
               {/* Context Info and Walkthrough Trigger */}
               <div className={`px-4 py-2 flex items-center gap-2 text-[11px] border-b font-medium flex-shrink-0 ${
-                isDark ? 'bg-gray-950/70 border-gray-800 text-gray-400' : 'bg-emerald-50/40 border-emerald-100 text-gray-650'
+                isDark ? 'bg-gray-950/70 border-gray-800 text-gray-400' : 'bg-emerald-50/40 border-emerald-100 text-gray-600'
               }`}>
-                <Info className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-450" />
+                <Info className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span className="truncate">
-                  Location: <strong className="text-emerald-650 dark:text-emerald-400 capitalize">{location.pathname === '/' ? 'Home' : location.pathname.substring(1)}</strong>
+                  Location: <strong className="text-emerald-600 dark:text-emerald-400 capitalize">{location.pathname === '/' ? 'Home' : location.pathname.substring(1)}</strong>
                 </span>
                 <button
                   onClick={startTour}
@@ -340,8 +340,8 @@ Try asking:
               <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDark ? 'bg-gray-950' : 'bg-slate-50'}`}>
                 {/* Greetings message cards (Shown first) */}
                 {chatMessages.length === 1 && (
-                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-gray-900 border-gray-850' : 'bg-white border-emerald-100/70 shadow-sm'} text-xs space-y-3`}>
-                    <p className="font-semibold text-emerald-600 dark:text-emerald-450">Salam {user?.name || 'Traveler'}! 🇵🇰</p>
+                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-emerald-100/70 shadow-sm'} text-xs space-y-3`}>
+                    <p className="font-semibold text-emerald-600 dark:text-emerald-400">Salam {user?.name || 'Traveler'}!</p>
                     <p className="leading-relaxed text-slate-500 dark:text-slate-400">
                       I'm Rahbar, your website assistant. Pick a prompt below to start or type a question in the box!
                     </p>
@@ -352,7 +352,7 @@ Try asking:
                           onClick={() => sendChatMessage(p)}
                           className={`text-left p-2.5 rounded-xl border text-[11px] font-semibold transition hover:scale-[1.01] ${
                             isDark 
-                              ? 'bg-gray-850 hover:bg-gray-800 border-gray-700 text-gray-300' 
+                              ? 'bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300' 
                               : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 hover:border-emerald-200 text-slate-700'
                           }`}
                         >
@@ -416,7 +416,7 @@ Try asking:
                     placeholder="Ask how to use the website..."
                     className={`flex-1 px-4 py-2 border rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${
                       isDark 
-                        ? 'bg-gray-850 border-gray-700 text-white placeholder-gray-500' 
+                        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' 
                         : 'border-slate-200 text-gray-800 placeholder-gray-400'
                     }`}
                   />

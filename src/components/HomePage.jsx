@@ -138,7 +138,7 @@ const HomePage = () => {
         {/* Hero Content */}
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400 backdrop-blur-md">
-            <Sparkles className="h-4 w-4 text-emerald-400 animate-spin-slow" />
+            <Sparkles className="h-4 w-4 text-emerald-400 animate-spin" />
             Empowering Your Wanderlust
           </div>
           <h1 className="font-serif text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight drop-shadow-md">
@@ -253,7 +253,7 @@ const HomePage = () => {
                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${feat.color} text-white flex items-center justify-center shadow-md`}>
                         <Icon className="w-6 h-6" />
                       </div>
-                      <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-650 dark:text-emerald-450 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                         {feat.badge}
                       </span>
                     </div>
@@ -261,7 +261,7 @@ const HomePage = () => {
                     <h3 className="mt-6 font-bold text-xl flex items-center gap-1">
                       {feat.title}
                     </h3>
-                    <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-455">
+                    <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
                       {feat.description}
                     </p>
                   </div>

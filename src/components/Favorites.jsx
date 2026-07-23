@@ -178,10 +178,10 @@ const Favorites = () => {
               return (
                 <div 
                   key={idx} 
-                  className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden`}
+                  className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group flex flex-col justify-between h-full`}
                 >
                   <div className="relative h-48 overflow-hidden bg-gray-800">
-                    <img src={placeImage} alt={place.place} className="w-full h-full object-cover" />
+                    <img src={placeImage} alt={place.place} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
 
                     {/* Remove Favorite Button */}
@@ -200,34 +200,36 @@ const Favorites = () => {
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                        {place.place}
-                      </h3>
-                      <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full">
-                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        <span className="font-bold text-sm">{place.rating}</span>
-                      </div>
-                    </div>
-
-                    <div className={`space-y-2 mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="w-4 h-4" />
-                        <span>{place.city}, {place.province}</span>
+                  <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                          {place.place}
+                        </h3>
+                        <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full">
+                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                          <span className="font-bold text-sm">{place.rating}</span>
+                        </div>
                       </div>
 
-                      <div className="flex gap-2 flex-wrap">
-                        <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
-                          {place.category}
-                        </span>
-                        <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">
-                          {budget} Budget
-                        </span>
-                      </div>
+                      <div className={`space-y-2 mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="w-4 h-4" />
+                          <span>{place.city}, {place.province}</span>
+                        </div>
 
-                      <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <strong>Best:</strong> {place.season}
+                        <div className="flex gap-2 flex-wrap">
+                          <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
+                            {place.category}
+                          </span>
+                          <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">
+                            {budget} Budget
+                          </span>
+                        </div>
+
+                        <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <strong>Best:</strong> {place.season}
+                        </div>
                       </div>
                     </div>
 

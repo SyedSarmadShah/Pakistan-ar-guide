@@ -1744,12 +1744,12 @@ const Checkout = () => {
                 onClick={() => setMobileSummaryOpen(!mobileSummaryOpen)}
               >
                 <span className="flex">
-                  <MapPin className="w-4 h-4 text-emerald mr-2" />
+                  <MapPin className="w-4 h-4 text-emerald-600 mr-2" />
                   View Trip Summary & Pricing
                 </span>
                 <span className="flex">
                   <strong style={{ color: 'var(--emerald)' }}>PKR {pricing.grandTotal.toLocaleString()}</strong>
-                  {mobileSummaryOpen ? <ChevronUp className="w-4.5 h-4.5 ml-1" /> : <ChevronDown className="w-4.5 h-4.5 ml-1" />}
+                  {mobileSummaryOpen ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
                 </span>
               </button>
               <div className={`accordion-collapse-panel ${mobileSummaryOpen ? 'open' : ''}`}>
@@ -1763,7 +1763,7 @@ const Checkout = () => {
             {currentStep === 2 && (
               <div className="card">
                 <div className="card-header">
-                  <Users className="w-5 h-5 text-emerald" />
+                  <Users className="w-5 h-5 text-emerald-600" />
                   Traveler Details
                 </div>
                 <div className="card-body">
@@ -1930,7 +1930,7 @@ const Checkout = () => {
                 <div className="review-section-box">
                   <div className="review-title-row">
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Info className="w-5 h-5 text-emerald" /> Review Booking Details
+                      <Info className="w-5 h-5 text-emerald-600" /> Review Booking Details
                     </h3>
                     <button type="button" className="edit-btn" onClick={() => setCurrentStep(2)}>
                       <Edit3 className="w-3.5 h-3.5" /> Edit details
@@ -1964,7 +1964,7 @@ const Checkout = () => {
                 {/* Main Payment Form Card */}
                 <div className="card">
                   <div className="card-header">
-                    <Lock className="w-4.5 h-4.5 text-emerald" /> Select Payment Method
+                    <Lock className="w-4 h-4 text-emerald-600" /> Select Payment Method
                   </div>
                   <div className="card-body">
                     
@@ -1982,7 +1982,7 @@ const Checkout = () => {
                         className={`method-tab ${currentMethod === 'easypaisa' ? 'active' : ''}`}
                         onClick={() => setCurrentMethod('easypaisa')}
                       >
-                        <Smartphone className="w-5 h-5 text-emerald" />
+                        <Smartphone className="w-5 h-5 text-emerald-600" />
                         Easypaisa
                       </button>
                       <button
@@ -2235,7 +2235,7 @@ const Checkout = () => {
                           <div className="iban-copy-container">
                             <span>PK36HABB0000123456789001</span>
                             <button type="button" className="iban-copy-btn" onClick={copyIBAN} title="Copy IBAN">
-                              {copyStatus ? <Check className="w-4 h-4 text-emerald" /> : <Copy className="w-4 h-4" />}
+                              {copyStatus ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                             </button>
                           </div>
                         </div>
@@ -2344,7 +2344,7 @@ const Checkout = () => {
                         </>
                       ) : (
                         <>
-                          <Lock className="w-4.5 h-4.5" /> Complete Booking Securely
+                          <Lock className="w-4 h-4" /> Complete Booking Securely
                         </>
                       )}
                     </button>
@@ -2356,7 +2356,7 @@ const Checkout = () => {
                         onClick={() => setCurrentStep(2)}
                         disabled={isProcessing}
                       >
-                        <ArrowLeft className="w-4.5 h-4.5" /> Back to Traveler Details
+                        <ArrowLeft className="w-4 h-4" /> Back to Traveler Details
                       </button>
                     </div>
 

@@ -676,10 +676,10 @@ const PlaceCard = ({ place, isDark, onToggleFavorite, isFavorite, onNavigate, we
   const sev = SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.neutral;
 
   return (
-    <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden`}>
+    <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group flex flex-col justify-between h-full`}>
       {/* ── Card image ──────────────────────────────────────────────────────── */}
       <div className={`relative h-48 overflow-hidden ${isDark ? 'bg-gray-900' : 'bg-gray-800'}`}>
-        <img src={placeImage} alt={place.place} className="w-full h-full object-cover" />
+        <img src={placeImage} alt={place.place} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
         {/* Weather strip — always visible once data arrives */}
@@ -716,165 +716,167 @@ const PlaceCard = ({ place, isDark, onToggleFavorite, isFavorite, onNavigate, we
       </div>
 
       {/* ── Card body ───────────────────────────────────────────────────────── */}
-      <div className="p-5">
-        <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-2`}>{place.place}</h3>
+      <div className="p-5 flex-1 flex flex-col justify-between">
+        <div>
+          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-2`}>{place.place}</h3>
 
-        {/* Quick signals row */}
-        <div className="flex flex-wrap gap-2 mb-3 items-center">
-          <span className={`text-xs font-semibold ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
-            ⭐ {place.rating}
-          </span>
-          {place.budgetLevel && (
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
-              {place.budgetLevel}
+          {/* Quick signals row */}
+          <div className="flex flex-wrap gap-2 mb-3 items-center">
+            <span className={`text-xs font-semibold ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
+              ⭐ {place.rating}
             </span>
-          )}
-          {typeof place.distanceKm === 'number' && (
-            <span className={`text-xs font-semibold ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
-              📍 {place.distanceKm < 1 ? '< 1' : Math.round(place.distanceKm)} km
-            </span>
-          )}
-          {showPopularBadge && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-              🔥 Popular
-            </span>
-          )}
-        </div>
+            {place.budgetLevel && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
+                {place.budgetLevel}
+              </span>
+            )}
+            {typeof place.distanceKm === 'number' && (
+              <span className={`text-xs font-semibold ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
+                📍 {place.distanceKm < 1 ? '< 1' : Math.round(place.distanceKm)} km
+              </span>
+            )}
+            {showPopularBadge && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                🔥 Popular
+              </span>
+            )}
+          </div>
 
-        {/* Compact essential info */}
-        <div className="space-y-1.5 mb-3">
-          <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{place.city}</span>
+          {/* Compact essential info */}
+          <div className="space-y-1.5 mb-3">
+            <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <MapPin className="w-3.5 h-3.5" />
+              <span>{place.city}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold">{place.category}</span>
+              <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Best: {place.season}</span>
+            </div>
+            {place.tripDays && (
+              <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                ⏱️ {place.tripDays} days
+              </div>
+            )}
           </div>
-          <div className="flex gap-2">
-            <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold">{place.category}</span>
-            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Best: {place.season}</span>
-          </div>
-          {place.tripDays && (
-            <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              ⏱️ {place.tripDays} days
+
+          {/* Travel advice pill — always visible once weather loaded */}
+          {weather && (
+            <div
+              className={`flex items-start gap-2 text-xs font-medium px-2.5 py-2 rounded-lg mb-3 ${
+                isDark ? `${sev.darkBg} ${sev.darkText}` : `${sev.bg} ${sev.text}`
+              }`}
+            >
+              <span className="mt-px leading-none" aria-hidden="true">
+                {severity === 'good' ? '✅' : severity === 'warning' ? '⚠️' : severity === 'danger' ? '🚫' : 'ℹ️'}
+              </span>
+              <span>{weather.advice.text}</span>
+            </div>
+          )}
+
+          {/* Expandable details toggle */}
+          {weather && (
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className={`w-full text-left text-xs px-2 py-1.5 rounded mb-3 transition flex items-center gap-1 ${
+                showDetails
+                  ? isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'
+                  : isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+              aria-expanded={showDetails}
+            >
+              <Cloud className="w-3.5 h-3.5" />
+              <span>{showDetails ? '▼ Hide weather details' : '▶ Full weather details'}</span>
+            </button>
+          )}
+
+          {/* Expanded weather panel */}
+          {showDetails && weather && (
+            <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-3 mb-3 space-y-3`}>
+
+              {/* Metric badges */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Temperature */}
+                <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                  <Thermometer className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">{weather.temperatureC}°C</div>
+                    <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>feels {weather.feelsLikeC}°C</div>
+                  </div>
+                </div>
+
+                {/* Humidity */}
+                <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                  <Droplets className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">{weather.humidity}%</div>
+                    <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>humidity</div>
+                  </div>
+                </div>
+
+                {/* Wind */}
+                <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                  <Wind className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">{weather.windspeedKmh} km/h</div>
+                    <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>wind</div>
+                  </div>
+                </div>
+
+                {/* Precipitation */}
+                <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
+                  <Cloud className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">{weather.precipitationMm} mm</div>
+                    <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>precipitation</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* UV index badge — shown only when relevant */}
+              {weather.uvIndex > 0 && (
+                <div className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
+                  weather.uvIndex > 10
+                    ? isDark ? 'bg-red-900/30 text-red-300' : 'bg-red-50 text-red-700'
+                    : weather.uvIndex > 6
+                    ? isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'
+                    : isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'
+                }`}>
+                  <Eye className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>UV index <strong>{weather.uvIndex}</strong>
+                    {weather.uvIndex > 10 ? ' — very high, use SPF 50+' : weather.uvIndex > 6 ? ' — high, apply sunscreen' : ' — moderate'}
+                  </span>
+                </div>
+              )}
+
+              {/* Why recommended */}
+              {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
+                <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <strong className={isDark ? 'text-gray-300' : 'text-gray-600'}>Why recommended:</strong>
+                  <span className="ml-1">{place.scoreBreakdown.slice(0, 2).join(' • ')}</span>
+                </div>
+              )}
+
+              {/* Similar places */}
+              {Array.isArray(place.similarPlaces) && place.similarPlaces.length > 0 && (
+                <div className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'} space-y-1`}>
+                  <strong>Similar places:</strong>
+                  <ul className="list-disc list-inside">
+                    {place.similarPlaces.map((similar) => (
+                      <li key={`${similar.place}-${similar.city}`}>{similar.place} • {similar.city}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        {/* Travel advice pill — always visible once weather loaded */}
-        {weather && (
-          <div
-            className={`flex items-start gap-2 text-xs font-medium px-2.5 py-2 rounded-lg mb-3 ${
-              isDark ? `${sev.darkBg} ${sev.darkText}` : `${sev.bg} ${sev.text}`
-            }`}
-          >
-            <span className="mt-px leading-none" aria-hidden="true">
-              {severity === 'good' ? '✅' : severity === 'warning' ? '⚠️' : severity === 'danger' ? '🚫' : 'ℹ️'}
-            </span>
-            <span>{weather.advice.text}</span>
-          </div>
-        )}
-
-        {/* Expandable details toggle */}
-        {weather && (
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className={`w-full text-left text-xs px-2 py-1.5 rounded mb-3 transition flex items-center gap-1 ${
-              showDetails
-                ? isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'
-                : isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-            }`}
-            aria-expanded={showDetails}
-          >
-            <Cloud className="w-3.5 h-3.5" />
-            <span>{showDetails ? '▼ Hide weather details' : '▶ Full weather details'}</span>
-          </button>
-        )}
-
-        {/* Expanded weather panel */}
-        {showDetails && weather && (
-          <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-3 mb-3 space-y-3`}>
-
-            {/* Metric badges */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Temperature */}
-              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
-                <Thermometer className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">{weather.temperatureC}°C</div>
-                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>feels {weather.feelsLikeC}°C</div>
-                </div>
-              </div>
-
-              {/* Humidity */}
-              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
-                <Droplets className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">{weather.humidity}%</div>
-                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>humidity</div>
-                </div>
-              </div>
-
-              {/* Wind */}
-              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
-                <Wind className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">{weather.windspeedKmh} km/h</div>
-                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>wind</div>
-                </div>
-              </div>
-
-              {/* Precipitation */}
-              <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-700'}`}>
-                <Cloud className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">{weather.precipitationMm} mm</div>
-                  <div className={isDark ? 'text-gray-400' : 'text-gray-500'}>precipitation</div>
-                </div>
-              </div>
-            </div>
-
-            {/* UV index badge — shown only when relevant */}
-            {weather.uvIndex > 0 && (
-              <div className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
-                weather.uvIndex > 10
-                  ? isDark ? 'bg-red-900/30 text-red-300' : 'bg-red-50 text-red-700'
-                  : weather.uvIndex > 6
-                  ? isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'
-                  : isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'
-              }`}>
-                <Eye className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>UV index <strong>{weather.uvIndex}</strong>
-                  {weather.uvIndex > 10 ? ' — very high, use SPF 50+' : weather.uvIndex > 6 ? ' — high, apply sunscreen' : ' — moderate'}
-                </span>
-              </div>
-            )}
-
-            {/* Why recommended */}
-            {Array.isArray(place.scoreBreakdown) && place.scoreBreakdown.length > 0 && (
-              <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                <strong className={isDark ? 'text-gray-300' : 'text-gray-600'}>Why recommended:</strong>
-                <span className="ml-1">{place.scoreBreakdown.slice(0, 2).join(' • ')}</span>
-              </div>
-            )}
-
-            {/* Similar places */}
-            {Array.isArray(place.similarPlaces) && place.similarPlaces.length > 0 && (
-              <div className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'} space-y-1`}>
-                <strong>Similar places:</strong>
-                <ul className="list-disc list-inside">
-                  {place.similarPlaces.map((similar) => (
-                    <li key={`${similar.place}-${similar.city}`}>{similar.place} • {similar.city}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
 
         <button
           onClick={() => {
             trackClick(place);
             onNavigate();
           }}
-          className={`w-full py-2.5 rounded-lg font-semibold text-sm transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+          className={`w-full mt-4 py-2.5 rounded-lg font-semibold text-sm transition ${isDark ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
         >
           View Details
         </button>
